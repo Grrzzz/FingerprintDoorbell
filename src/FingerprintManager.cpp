@@ -238,6 +238,14 @@ void FingerprintManager::loadFingerListFromPrefs() {
 }
 
 
+extern bool shouldReboot;
+static const unsigned long ENROLL_TIMEOUT_MS = 120000; // give up if no finger is placed for 2 minutes
+
+// a pending reboot also ends an enrollment, otherwise loop() would never get to restart the device
+bool FingerprintManager::enrollAborted() {
+  return enrollAbort || shouldReboot;
+}
+
 // Add/Enroll fingerprint
 NewFinger FingerprintManager::enrollFinger(int id, int numIterations, String name) {
 
@@ -259,16 +267,22 @@ NewFinger FingerprintManager::enrollFinger(int id, int numIterations, String nam
       {
         //delay(2000);
         newFinger.returnCode = 0xFF;
+        unsigned long waitStart = millis();
         while (newFinger.returnCode != FINGERPRINT_NOFINGER) {
+          if (enrollAborted() || millis() - waitStart > ENROLL_TIMEOUT_MS) return newFinger;
           newFinger.returnCode = finger.getImage();
+          delay(10);
         }
       }
-      
+
       Serial.print("Taking image sample "); Serial.print(nTimes); Serial.print(": ");
       finger.LEDcontrol(FINGERPRINT_LED_FLASHING, 25, FINGERPRINT_LED_PURPLE, 0);
       newFinger.returnCode = 0xFF;
+      unsigned long sampleStart = millis();
       while (newFinger.returnCode != FINGERPRINT_OK) {
+        if (enrollAborted() || millis() - sampleStart > ENROLL_TIMEOUT_MS) return newFinger;
         newFinger.returnCode = finger.getImage();
+        delay(10);
         switch (newFinger.returnCode) {
         case FINGERPRINT_OK:
           Serial.print("taken, ");

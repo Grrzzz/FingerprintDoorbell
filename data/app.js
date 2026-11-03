@@ -342,12 +342,17 @@
   }
 
   // ---------- connectivity form ----------
-  var FIELDS = [['mqttServer', 'v'], ['mqttUsername', 'v'], ['mqttPassword', 'v'], ['mqttRootTopic', 'v'], ['ntpServer', 'v'], ['haDiscovery', 'c'], ['haDiscoveryPrefix', 'v']];
+  var FIELDS = [['mqttServer', 'v'], ['mqttUsername', 'v'], ['mqttPassword', 'v'], ['mqttRootTopic', 'v'], ['ntpServer', 'v'], ['timezone', 'v'], ['haDiscovery', 'c'], ['haDiscoveryPrefix', 'v']];
 
   function fillForm() {
     FIELDS.forEach(function (f) {
       var input = $(f[0]);
-      if (f[1] === 'c') input.checked = !!cfg[f[0]]; else input.value = cfg[f[0]];
+      if (f[1] === 'c') input.checked = !!cfg[f[0]];
+      else {
+        if (input.tagName === 'SELECT' && cfg[f[0]] && !Array.prototype.some.call(input.options, function (o) { return o.value === cfg[f[0]]; }))
+          input.appendChild(el('option', '', 'Custom: ' + cfg[f[0]])).value = cfg[f[0]];
+        input.value = cfg[f[0]];
+      }
     });
     updateTopicHint();
     updateSaveBar();
@@ -381,6 +386,7 @@
     p.set('mqtt_password', $('mqttPassword').value);
     p.set('mqtt_rootTopic', $('mqttRootTopic').value.trim());
     p.set('ntpServer', $('ntpServer').value.trim());
+    p.set('timezone', $('timezone').value);
     if ($('haDiscovery').checked) p.set('haDiscovery', '1');
     p.set('haDiscoveryPrefix', $('haDiscoveryPrefix').value.trim());
     p.set('touchRingActiveColor', cfg.touchRingActiveColor);
@@ -432,6 +438,13 @@
     $('btnAdd').onclick = openEnroll;
     $('btnEnrollStart').onclick = startEnroll;
     $('btnEnrollDone').onclick = function () { $('dlgEnroll').close(); };
+    // closing the dialog (X, Esc, backdrop) while an enrollment is running cancels it on the device
+    $('dlgEnroll').addEventListener('close', function () {
+      if (!enroll) return;
+      enroll = null;
+      $('enDisc').classList.remove('busy');
+      action('/api/enroll/cancel').then(function () { toast('Enrollment cancelled'); }).catch(fail);
+    });
     Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) {
       b.onclick = function () { b.closest('dialog').close(); };
     });

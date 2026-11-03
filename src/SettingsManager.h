@@ -16,6 +16,7 @@ struct AppSettings {
     String mqttPassword = "";
     String mqttRootTopic = "fingerprintDoorbell";
     String ntpServer = "pool.ntp.org";
+    String timezone = "CET-1CEST,M3.5.0,M10.5.0/3"; // POSIX TZ string, default Europe/Berlin
     String sensorPin = "00000000";
     String sensorPairingCode = "";
     bool   sensorPairingValid = false;

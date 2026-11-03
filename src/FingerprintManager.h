@@ -53,6 +53,7 @@ class FingerprintManager {
     bool isRingTouched();
     void loadFingerListFromPrefs();
     void disconnect();
+    bool enrollAborted();
     uint8_t writeNotepad(uint8_t pageNumber, const char *text, uint8_t length);
     uint8_t readNotepad(uint8_t pageNumber, char *text, uint8_t length);
     
@@ -60,6 +61,7 @@ class FingerprintManager {
 
   public:
     bool connected;
+    volatile bool enrollAbort = false; // set from the web server task to cancel a running enrollment
     bool connect();
     Match scanFingerprint();
     NewFinger enrollFinger(int id, int numIterations, String name);

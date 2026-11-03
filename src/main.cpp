@@ -17,7 +17,7 @@
 
 enum class Mode { scan, enroll, wificonfig, maintenance };
 
-const char* VersionInfo = "2.0 Grrzzz";
+const char* VersionInfo = "2.0.1 Grrzzz";
 
 // ===================================================================================================================
 // Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!
@@ -26,8 +26,6 @@ const char* WifiConfigSsid = "FingerprintDoorbell-Config"; // SSID used for WiFi
 const char* WifiConfigPassword = "12345678"; // password used for WiFi when in Access Point mode for configuration. Min. 8 chars needed!
 IPAddress   WifiConfigIp(192, 168, 4, 1); // IP of access point in wifi config mode
 
-const long  gmtOffset_sec = 0; // UTC Time
-const int   daylightOffset_sec = 0; // UTC Time
 const int   doorbellOutputPin = 19; // pin connected to the doorbell (when using hardware connection instead of mqtt to ring the bell)
 
 #ifdef CUSTOM_GPIOS
@@ -188,6 +186,7 @@ String getSettingsJson() {
   json += ",\"mqttPassword\":\"" + jsonEscape(s.mqttPassword) + "\"";
   json += ",\"mqttRootTopic\":\"" + jsonEscape(s.mqttRootTopic) + "\"";
   json += ",\"ntpServer\":\"" + jsonEscape(s.ntpServer) + "\"";
+  json += ",\"timezone\":\"" + jsonEscape(s.timezone) + "\"";
   json += String(",\"haDiscovery\":") + (s.haDiscovery ? "true" : "false");
   json += ",\"haDiscoveryPrefix\":\"" + jsonEscape(s.haDiscoveryPrefix) + "\"";
   json += ",\"touchRingActiveColor\":" + String(s.touchRingActiveColor);
@@ -409,7 +408,7 @@ void startWebserver(){
   }
 
   // Init time by NTP Client
-  configTime(gmtOffset_sec, daylightOffset_sec, settingsManager.getAppSettings().ntpServer.c_str());
+  configTzTime(settingsManager.getAppSettings().timezone.c_str(), settingsManager.getAppSettings().ntpServer.c_str());
   
   // webserver for normal operating or wifi config?
   if (currentMode == Mode::wificonfig)
@@ -509,9 +508,16 @@ void startWebserver(){
         enrollId = request->arg("newFingerprintId");
         enrollName = request->arg("newFingerprintName");
         numIterations = request->arg("newFingerprintIteration");
+        fingerManager.enrollAbort = false;
         currentMode = Mode::enroll;
       }
       request->redirect("/");
+    });
+
+    // cancel a running enrollment (e.g. the dialog was closed)
+    webServer.on("/api/enroll/cancel", HTTP_GET, [](AsyncWebServerRequest *request){
+      if (currentMode == Mode::enroll) fingerManager.enrollAbort = true;
+      sendJson(request, "{\"ok\":true}");
     });
 
     webServer.on("/editFingerprints", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -546,6 +552,7 @@ void startWebserver(){
         settings.mqttPassword = request->arg("mqtt_password");
         settings.mqttRootTopic = request->arg("mqtt_rootTopic");
         settings.ntpServer = request->arg("ntpServer");
+        if (request->hasArg("timezone") && request->arg("timezone").length() > 0) settings.timezone = request->arg("timezone");
         settings.haDiscovery = request->hasArg("haDiscovery");
         settings.haDiscoveryPrefix = request->arg("haDiscoveryPrefix");
         settings.haDiscoveryPrefix.trim();
@@ -899,7 +906,10 @@ void doEnroll()
   }
 
   NewFinger finger = fingerManager.enrollFinger(id, iterations, enrollName);
-  if (finger.enrollResult == EnrollResult::ok) {
+  if (fingerManager.enrollAbort) {
+    fingerManager.enrollAbort = false;
+    notifyClients("Enrollment failed. Cancelled.");
+  } else if (finger.enrollResult == EnrollResult::ok) {
     notifyClients("Enrollment successfull. You can now use your new finger for scanning.");
     updateClientsFingerlist(fingerManager.getFingerListAsJson());
   }  else if (finger.enrollResult == EnrollResult::error) {
