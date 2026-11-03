@@ -15,7 +15,7 @@
 
 enum class Mode { scan, enroll, wificonfig, maintenance };
 
-const char* VersionInfo = "0.4";
+const char* VersionInfo = "0.9 Grrzzz";
 
 // ===================================================================================================================
 // Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!
@@ -45,6 +45,7 @@ unsigned long mqttReconnectPreviousMillis = 0;
 
 String enrollId;
 String enrollName;
+String numIterations;
 Mode currentMode = Mode::scan;
 
 FingerprintManager fingerManager;
@@ -137,8 +138,11 @@ String processor(const String& var){
     return settingsManager.getAppSettings().mqttRootTopic;
   } else if (var == "NTP_SERVER") {
     return settingsManager.getAppSettings().ntpServer;
-  }
-
+} else if (var == "RING_ENABLED") {    
+    return settingsManager.getRingSettings().ringEnabled ? "checked" : "";
+} else if (var == "RING_DURATION") {
+    return (String)settingsManager.getRingSettings().ringDuration;
+}    
   return String();
 }
 
@@ -322,6 +326,7 @@ void startWebserver(){
       {
         enrollId = request->arg("newFingerprintId");
         enrollName = request->arg("newFingerprintName");
+        numIterations = request->arg("newFingerprintIteration");
         currentMode = Mode::enroll;
       }
       request->redirect("/");
@@ -365,6 +370,19 @@ void startWebserver(){
       }
     });
 
+    webServer.on("/ring", HTTP_GET, [](AsyncWebServerRequest *request){
+      if(request->hasArg("btnSaveRing"))
+      {
+        Serial.println("Save ring settings");
+        RingSettings settings = settingsManager.getRingSettings();
+        settings.ringEnabled = request->arg("ringEnabled").equals("on");
+        settings.ringDuration = request->arg("ringDuration").toInt();        
+        settingsManager.saveRingSettings(settings);
+        request->redirect("/settings");  
+        shouldReboot = false;
+      } 
+      request->send(SPIFFS, "/settings.html", String(), false, processor);
+    });
 
     webServer.on("/pairing", HTTP_GET, [](AsyncWebServerRequest *request){
       if(request->hasArg("btnDoPairing"))
@@ -468,6 +486,22 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
       fingerManager.setIgnoreTouchRing(false);
     }
   }
+  if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/ringEnabled") {
+              
+    if(messageTemp == "on"){
+      RingSettings settings = settingsManager.getRingSettings();  
+      settings.ringEnabled = true;       
+      settingsManager.saveRingSettings(settings);
+       notifyClients("ringEnabled is now 'on'");
+    }
+    else if(messageTemp == "off"){
+      RingSettings settings = settingsManager.getRingSettings();  
+      settings.ringEnabled = false;       
+      settingsManager.saveRingSettings(settings);
+      notifyClients("ringEnabled is now 'off'");
+    }
+  }
+
 
   #ifdef CUSTOM_GPIOS
     if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/customOutput1") {
@@ -507,8 +541,17 @@ void connectMqttClient() {
     if (connectResult) {
       // success
       Serial.println("connected");
-      // Subscribe
+      // Retain and ...
+      String ignore = fingerManager.getIgnoreTouchRing() ? "on" : "off";
+      String ring = settingsManager.getRingSettings().ringEnabled ? "on" : "off";
+
+      mqttClient.publish((settingsManager.getAppSettings().mqttRootTopic + "/ignoreTouchRing").c_str(), ignore.c_str(), true);
+      mqttClient.publish((settingsManager.getAppSettings().mqttRootTopic + "/ringEnabled").c_str(), ring.c_str(), true);
+
+      // ...Subscribe
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
+      mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ringEnabled").c_str(), 1); // QoS = 1 (at least once)
+    
       #ifdef CUSTOM_GPIOS
         mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/customOutput1").c_str(), 1); // QoS = 1 (at least once)
         mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/customOutput2").c_str(), 1); // QoS = 1 (at least once)
@@ -562,16 +605,19 @@ void doScan()
     case ScanResult::noMatchFound:
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {
-        digitalWrite(doorbellOutputPin, HIGH);
+        if(settingsManager.getRingSettings().ringEnabled) {
+          digitalWrite(doorbellOutputPin, HIGH);
+        }
+        
         mqttClient.publish((String(mqttRootTopic) + "/ring").c_str(), "on");
         mqttClient.publish((String(mqttRootTopic) + "/matchId").c_str(), "-1");
         mqttClient.publish((String(mqttRootTopic) + "/matchName").c_str(), "");
         mqttClient.publish((String(mqttRootTopic) + "/matchConfidence").c_str(), "-1");
         Serial.println("MQTT message sent: ring the bell!");
-        delay(1000);
+        delay(settingsManager.getRingSettings().ringDuration);        
         digitalWrite(doorbellOutputPin, LOW); 
       } else {
-        delay(1000); // wait some time before next scan to let the LED blink
+        delay(500); // wait some time before next scan to let the LED blink
       }
       break;
     case ScanResult::error:
@@ -590,7 +636,13 @@ void doEnroll()
     return;
   }
 
-  NewFinger finger = fingerManager.enrollFinger(id, enrollName);
+  int iterations = numIterations.toInt();
+  if (iterations < 1 || iterations > 5) {
+    notifyClients("Invalid iterations '" + numIterations + "'");
+    return;
+  }
+
+  NewFinger finger = fingerManager.enrollFinger(id, iterations, enrollName);
   if (finger.enrollResult == EnrollResult::ok) {
     notifyClients("Enrollment successfull. You can now use your new finger for scanning.");
     updateClientsFingerlist(fingerManager.getFingerListAsHtmlOptionList());
@@ -633,6 +685,7 @@ void setup()
 
   settingsManager.loadWifiSettings();
   settingsManager.loadAppSettings();
+  settingsManager.loadRingSettings();
 
   fingerManager.connect();
   

@@ -54,7 +54,7 @@ void FingerprintManager::updateTouchState(bool touched)
       // check if sensor or ring is touched
       if (touched) {
         // turn touch indicator on:
-        finger.LEDcontrol(FINGERPRINT_LED_FLASHING, 25, FINGERPRINT_LED_RED, 0);
+        finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 25, FINGERPRINT_LED_WHITE, 0);
       } else {
         // turn touch indicator off:
         setLedRingReady();
@@ -189,7 +189,7 @@ Match FingerprintManager::scanFingerprint() {
     match.returnCode = finger.fingerSearch();
     if (match.returnCode == FINGERPRINT_OK) {
         // found a match!
-        finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_PURPLE);
+        finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_GREEN);
         
         match.scanResult = ScanResult::matchFound;
         match.matchId = finger.fingerID;
@@ -239,7 +239,7 @@ void FingerprintManager::loadFingerListFromPrefs() {
 
 
 // Add/Enroll fingerprint
-NewFinger FingerprintManager::enrollFinger(int id, String name) {
+NewFinger FingerprintManager::enrollFinger(int id, int numIterations, String name) {
 
   NewFinger newFinger;
   newFinger.enrollResult = EnrollResult::error;
@@ -251,7 +251,7 @@ NewFinger FingerprintManager::enrollFinger(int id, String name) {
 
   
   // Repeat n times to get better resulting templates (as stated in R503 documentation up to 6 combined image samples possible, but I got an communication error when trying more than 5 samples, so dont go >5)
-  for (int nTimes=1; nTimes<=5; nTimes++)
+  for (int nTimes=1; nTimes<=numIterations; nTimes++)
   {
       notifyClients(String("Take #" + String(nTimes))+ " (place your finger on the sensor until led ring stops flashing, then remove it).");
 
@@ -310,7 +310,7 @@ NewFinger FingerprintManager::enrollFinger(int id, String name) {
           Serial.print("Unknown error");
           return newFinger;
       }
-      finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_PURPLE);
+      finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_GREEN);
 
   }
 
@@ -416,6 +416,9 @@ String FingerprintManager::getFingerListAsHtmlOptionList() {
   }
   return htmlOptions;
 }
+bool FingerprintManager::getIgnoreTouchRing() {
+  return ignoreTouchRing;
+}
 
 void FingerprintManager::setIgnoreTouchRing(bool state) {
   if (ignoreTouchRing != state) {
@@ -457,9 +460,9 @@ void FingerprintManager::setLedRingWifiConfig() {
 
 void FingerprintManager::setLedRingReady() {
   if (!ignoreTouchRing)
-    finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 250, FINGERPRINT_LED_BLUE);
+    finger.LEDcontrol(FINGERPRINT_LED_ON, 250, FINGERPRINT_LED_WHITE);
   else
-    finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_BLUE); // just an indicator for me to see if touch ring is active or not
+    finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_CYAN); // just an indicator for me to see if touch ring is active or not
 }
 
 bool FingerprintManager::deleteAll() {

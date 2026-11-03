@@ -24,7 +24,19 @@ bool SettingsManager::loadAppSettings() {
         appSettings.ntpServer = preferences.getString("ntpServer", String("pool.ntp.org"));
         appSettings.sensorPin = preferences.getString("sensorPin", "00000000");
         appSettings.sensorPairingCode = preferences.getString("pairingCode", "");
-        appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);
+        appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);        
+        preferences.end();
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool SettingsManager::loadRingSettings() {
+    Preferences preferences;
+    if (preferences.begin("ringSettings", true)) {
+        ringSettings.ringDuration = preferences.getInt("ringDuration", 500);
+        ringSettings.ringEnabled = preferences.getBool("ringEnabled", true);
         preferences.end();
         return true;
     } else {
@@ -55,6 +67,14 @@ void SettingsManager::saveAppSettings() {
     preferences.end();
 }
 
+void SettingsManager::saveRingSettings() {
+    Preferences preferences;
+    preferences.begin("ringSettings", false); 
+    preferences.putInt("ringDuration", ringSettings.ringDuration);
+    preferences.putBool("ringEnabled", ringSettings.ringEnabled);    
+    preferences.end();
+}
+
 WifiSettings SettingsManager::getWifiSettings() {
     return wifiSettings;
 }
@@ -71,6 +91,15 @@ AppSettings SettingsManager::getAppSettings() {
 void SettingsManager::saveAppSettings(AppSettings newSettings) {
     appSettings = newSettings;
     saveAppSettings();
+}
+
+RingSettings SettingsManager::getRingSettings() {
+    return ringSettings;
+}
+
+void SettingsManager::saveRingSettings(RingSettings newSettings) {
+    ringSettings = newSettings;
+    saveRingSettings();
 }
 
 bool SettingsManager::isWifiConfigured() {
@@ -94,6 +123,16 @@ bool SettingsManager::deleteWifiSettings() {
     bool rc;
     Preferences preferences;
     rc = preferences.begin("wifiSettings", false); 
+    if (rc)
+        rc = preferences.clear();
+    preferences.end();
+    return rc;
+}
+
+bool SettingsManager::deleteRingSettings() {
+    bool rc;
+    Preferences preferences;
+    rc = preferences.begin("ringSettings", false); 
     if (rc)
         rc = preferences.clear();
     preferences.end();

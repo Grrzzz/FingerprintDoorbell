@@ -96,7 +96,8 @@
 			- "%MQTT_ROOTTOPIC%/matchConfidence"<br>
 			- "%MQTT_ROOTTOPIC%/lastLogMessage"<br>
 			Subscribed Topics (=read)<br>
-			- "%MQTT_ROOTTOPIC%/ignoreTouchRing"
+			- "%MQTT_ROOTTOPIC%/ignoreTouchRing"<br>
+			- "%MQTT_ROOTTOPIC%/ringEnabled"
 		</small>
 		</div>
 	</div>
@@ -119,6 +120,39 @@
 
 	</fieldset>
 	</form>
+
+	<form class="form-horizontal" action="/ring">
+		<fieldset>
+		
+		<!-- Form Name -->
+		<legend>Ring Settings</legend>
+		
+		<div class="form-group">
+			<label class="col-md-4 control-label" for="ringEnabled">Ring enabled</label>  
+			<div class="col-md-4">
+			<input id="ringEnabled" name="ringEnabled" type="checkbox" class="form-check-input input-md" %RING_ENABLED%>
+			<small class="text-muted">Enabled or disable signal to hardware gong.</small>		
+			</div>
+		</div>
+
+		<div class="form-group">
+			<label class="col-md-4 control-label" for="ringDuration">Ring duration</label>  
+			<div class="col-md-4">
+			<input id="ringDuration" name="ringDuration" type="text" placeholder="Time in ms (default 500)" class="form-control input-md" value="%RING_DURATION%">
+			<small class="text-muted">Ring duration in ms for gong.</small>		
+			</div>
+		</div>
+	
+		<!-- Button -->
+		<div class="form-group">
+		  <label class="col-md-4 control-label" for="btnSaveRing"></label>
+		  <div class="col-md-4">
+			<button id="btnSaveRing" name="btnSaveRing" class="btn btn-success">Save</button>
+		  </div>
+		</div>
+	
+		</fieldset>
+		</form>
 
 	<form class="form-horizontal">
 	<fieldset>

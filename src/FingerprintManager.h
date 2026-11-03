@@ -55,10 +55,11 @@ class FingerprintManager {
     bool connected;
     bool connect();
     Match scanFingerprint();
-    NewFinger enrollFinger(int id, String name);
+    NewFinger enrollFinger(int id, int numIterations, String name);
     void deleteFinger(int id);
     void renameFinger(int id, String newName);
     String getFingerListAsHtmlOptionList();
+    bool getIgnoreTouchRing();
     void setIgnoreTouchRing(bool state);
     bool isFingerOnSensor();
     void setLedRingError();

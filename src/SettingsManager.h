@@ -18,20 +18,28 @@ struct AppSettings {
     String ntpServer = "pool.ntp.org";
     String sensorPin = "00000000";
     String sensorPairingCode = "";
-    bool   sensorPairingValid = false;
+    bool   sensorPairingValid = false;    
+};
+
+struct RingSettings {    
+    bool ringEnabled = true;
+    int ringDuration = 500;
 };
 
 class SettingsManager {       
   private:
     WifiSettings wifiSettings;
     AppSettings appSettings;
+    RingSettings ringSettings;
 
     void saveWifiSettings();
     void saveAppSettings();
+    void saveRingSettings();
 
-  public:
+public:
     bool loadWifiSettings();
     bool loadAppSettings();
+    bool loadRingSettings();
 
     WifiSettings getWifiSettings();
     void saveWifiSettings(WifiSettings newSettings);
@@ -39,10 +47,14 @@ class SettingsManager {
     AppSettings getAppSettings();
     void saveAppSettings(AppSettings newSettings);
 
+    RingSettings getRingSettings();
+    void saveRingSettings(RingSettings newSettings);
+
     bool isWifiConfigured();
 
     bool deleteAppSettings();
     bool deleteWifiSettings();
+    bool deleteRingSettings();
 
     String generateNewPairingCode();
 
