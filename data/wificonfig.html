@@ -1,69 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>WiFi Configuration</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
-  <style>
-	.form-horizontal{
-		margin-left: 15px;
-		margin-right: 15px;
-	}
-	h1{
-		margin-left: 15px;
-	}
-  </style>
+  <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body>
-	<h1>%HOSTNAME%</h1>
-	<div class="alert alert-danger" role="alert"><b>You are currently in WiFi configuration mode!</b></br></br>In this mode the device acts as a WiFi access point to which you can temporarily connect to with your smartphone/pc
-	for configuring the access to your regular WiFi network. <br><br>
-	After saving the new WiFi configuration the device will restart and try to connect to your network.	If this fails the device will not go back to WiFi config mode automatically. You have to put the device manually in WiFi config mode by press and hold the sensor surface for 10 s while powering up the device.
-	</div>
-	
-	<form class="form-horizontal" action="/save">
-	<fieldset>
-
-	<!-- Form Name -->
-	<legend>WiFi Configuration</legend>
-
-	<!-- Text input-->
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="ssid">SSID</label>  
-		<div class="col-md-6">
-		<input id="ssid" name="ssid" type="text" placeholder="SSID of your WiFi network" class="form-control input-md" value="%WIFI_SSID%" required>
+	<main class="center-page">
+		<div class="brand">
+			<div class="brand-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11a3 3 0 0 0-3 3c0 2.5.5 4.5 1.5 6.5"/><path d="M12 7a7 7 0 0 0-7 7c0 2 .3 3.6.9 5"/><path d="M12 3a11 11 0 0 0-11 11"/><path d="M12 3a11 11 0 0 1 11 11c0 1.8-.2 3-.5 4.5"/><path d="M12 7a7 7 0 0 1 7 7c0 2-.3 3.8-.8 5.5"/><path d="M12 11a3 3 0 0 1 3 3c0 1.8-.2 3.3-.6 4.8"/></svg></div>
+			<div>
+				<div class="brand-name">%HOSTNAME%</div>
+				<div class="brand-sub">WiFi setup</div>
+			</div>
 		</div>
-	</div>
 
-	<!-- Text input-->
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="password">WiFi Password</label>  
-		<div class="col-md-8">
-		<input id="password" name="password" type="text" placeholder="Password of your WiFi network" class="form-control input-md" value="%WIFI_PASSWORD%" required>
-		<small class="text-muted">For security reason the current password is not displayed here, but you can set a new one.</small>
+		<div class="notice">
+			<b>You are currently in WiFi configuration mode!</b><br><br>
+			In this mode the device acts as a WiFi access point to which you can temporarily connect with your smartphone/PC
+			to configure the access to your regular WiFi network.<br><br>
+			After saving the new WiFi configuration the device will restart and try to connect to your network. If this fails the device will not go back to WiFi config mode automatically.
+			You have to put the device manually in WiFi config mode by pressing and holding the sensor surface for 10 s while powering up the device.
 		</div>
-	</div>
 
-	<!-- Text input-->
-	<div class="form-group">
-		<label class="col-md-4 control-label" for="hostname">Hostname</label>  
-		<div class="col-md-8">
-		<input id="hostname" name="hostname" type="text" placeholder="Hostname of your FingerprintDoorbell" class="form-control input-md" value="%HOSTNAME%" required>
-		<small class="text-muted">The name under which this device will be available in your network. Also used in the title of the web frontend. <br>Hint: just leave it "FingerprintDoorbell" unless you have multiple devices and want to differentiate between them.</small>		
-		</div>
-	</div>
-	  
-	<!-- Button (Double) -->
-	<div class="form-group">
-	  <label class="col-md-4 control-label" for="save"></label>
-	  <div class="col-md-8">
-		<button id="save" name="save" class="btn btn-success">Save and restart</button>
-	  </div>
-	</div>
+		<form class="card" action="/save">
+			<h2>WiFi configuration</h2>
+			<p class="sub">Connect the device to your home network.</p>
 
-	</fieldset>
-	</form>
+			<div class="field">
+				<label for="ssid">SSID</label>
+				<input id="ssid" name="ssid" type="text" placeholder="SSID of your WiFi network" value="%WIFI_SSID%" required>
+			</div>
 
+			<div class="field">
+				<label for="password">WiFi password</label>
+				<input id="password" name="password" type="password" placeholder="Password of your WiFi network" value="%WIFI_PASSWORD%" required>
+				<span class="hint">For security reasons the current password is not displayed here, but you can set a new one.</span>
+			</div>
+
+			<div class="field">
+				<label for="hostname">Hostname</label>
+				<input id="hostname" name="hostname" type="text" placeholder="Hostname of your FingerprintDoorbell" value="%HOSTNAME%" required>
+				<span class="hint">The name under which this device is available in your network. Also used in the title of the web interface.<br>Hint: just leave it "FingerprintDoorbell" unless you have multiple devices and want to differentiate between them.</span>
+			</div>
+
+			<div class="actions">
+				<button id="save" name="save" class="btn">Save and restart</button>
+			</div>
+		</form>
+	</main>
 </body>
 </html>

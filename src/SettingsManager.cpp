@@ -24,7 +24,13 @@ bool SettingsManager::loadAppSettings() {
         appSettings.ntpServer = preferences.getString("ntpServer", String("pool.ntp.org"));
         appSettings.sensorPin = preferences.getString("sensorPin", "00000000");
         appSettings.sensorPairingCode = preferences.getString("pairingCode", "");
-        appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);        
+        appSettings.sensorPairingValid = preferences.getBool("pairingValid", false);
+        appSettings.touchRingActiveColor = preferences.getShort("ringActCol", 7);
+        appSettings.touchRingActiveSequence = preferences.getShort("ringActSeq", 3);
+        appSettings.scanColor = preferences.getShort("scanColor", 7);
+        appSettings.matchColor = preferences.getShort("matchColor", 4);
+        appSettings.haDiscovery = preferences.getBool("haDiscovery", true);
+        appSettings.haDiscoveryPrefix = preferences.getString("haPrefix", String("homeassistant"));
         preferences.end();
         return true;
     } else {
@@ -35,7 +41,7 @@ bool SettingsManager::loadAppSettings() {
 bool SettingsManager::loadRingSettings() {
     Preferences preferences;
     if (preferences.begin("ringSettings", true)) {
-        ringSettings.ringDuration = preferences.getInt("ringDuration", 500);
+        ringSettings.ringDuration = preferences.getInt("ringDuration", 275);
         ringSettings.ringEnabled = preferences.getBool("ringEnabled", true);
         preferences.end();
         return true;
@@ -64,6 +70,12 @@ void SettingsManager::saveAppSettings() {
     preferences.putString("sensorPin", appSettings.sensorPin);
     preferences.putString("pairingCode", appSettings.sensorPairingCode);
     preferences.putBool("pairingValid", appSettings.sensorPairingValid);
+    preferences.putShort("ringActCol", appSettings.touchRingActiveColor);
+    preferences.putShort("ringActSeq", appSettings.touchRingActiveSequence);
+    preferences.putShort("scanColor", appSettings.scanColor);
+    preferences.putShort("matchColor", appSettings.matchColor);
+    preferences.putBool("haDiscovery", appSettings.haDiscovery);
+    preferences.putString("haPrefix", appSettings.haDiscoveryPrefix);
     preferences.end();
 }
 

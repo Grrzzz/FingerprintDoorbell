@@ -41,6 +41,13 @@ class FingerprintManager {
     int fingerCountOnSensor = 0;
     bool ignoreTouchRing = false; // set to true when the sensor is usually exposed to rain to avoid false ring events. Can also be set conditional by a rain sensor over MQTT
     bool lastIgnoreTouchRing = false;
+
+    // LED settings, defaults can be overridden with configLedRing(). Colors/sequences are the R503 values (FINGERPRINT_LED_*)
+    uint8_t touchRingActiveColor = FINGERPRINT_LED_WHITE; // ring ready (touch ring active)
+    uint8_t touchRingActiveSequence = FINGERPRINT_LED_ON;
+    uint8_t scanColor = FINGERPRINT_LED_WHITE; // finger detected on sensor
+    uint8_t matchColor = FINGERPRINT_LED_GREEN; // fingerprint matched
+    bool gongEnabled = true; // when disabled the ring shows "on + red" (highest priority)
     
     void updateTouchState(bool touched);
     bool isRingTouched();
@@ -59,14 +66,18 @@ class FingerprintManager {
     void deleteFinger(int id);
     void renameFinger(int id, String newName);
     String getFingerListAsHtmlOptionList();
+    String getFingerListAsJson();
+    int getFingerCount();
     bool getIgnoreTouchRing();
     void setIgnoreTouchRing(bool state);
     bool isFingerOnSensor();
     void setLedRingError();
     void setLedRingWifiConfig();
     void setLedRingReady();
+    bool setGongEnabled(bool enabled); // returns true if the state changed
     String getPairingCode();
     bool setPairingCode(String pairingCode);
+    void configLedRing(uint8_t touchRingColor, uint8_t touchRingSequence, uint8_t scanColor, uint8_t matchColor);
     
     bool deleteAll();
 

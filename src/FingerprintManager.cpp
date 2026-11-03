@@ -54,7 +54,7 @@ void FingerprintManager::updateTouchState(bool touched)
       // check if sensor or ring is touched
       if (touched) {
         // turn touch indicator on:
-        finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 25, FINGERPRINT_LED_WHITE, 0);
+        finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 25, scanColor, 0);
       } else {
         // turn touch indicator off:
         setLedRingReady();
@@ -189,7 +189,7 @@ Match FingerprintManager::scanFingerprint() {
     match.returnCode = finger.fingerSearch();
     if (match.returnCode == FINGERPRINT_OK) {
         // found a match!
-        finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_GREEN);
+        finger.LEDcontrol(FINGERPRINT_LED_ON, 0, matchColor);
         
         match.scanResult = ScanResult::matchFound;
         match.matchId = finger.fingerID;
@@ -416,6 +416,36 @@ String FingerprintManager::getFingerListAsHtmlOptionList() {
   }
   return htmlOptions;
 }
+String FingerprintManager::getFingerListAsJson() {
+  if (!connected) // without sensor the finger list was never loaded
+    return "[]";
+  String json = "[";
+  bool first = true;
+  for (int i=1; i<=200; i++) {
+    if (fingerList[i].compareTo("@empty") != 0) {
+      String name = fingerList[i];
+      name.replace("\\", "\\\\");
+      name.replace("\"", "\\\"");
+      if (!first)
+        json += ",";
+      json += "{\"id\":" + String(i) + ",\"name\":\"" + name + "\"}";
+      first = false;
+    }
+  }
+  return json + "]";
+}
+
+int FingerprintManager::getFingerCount() {
+  if (!connected)
+    return 0;
+  int counter = 0;
+  for (int i=1; i<=200; i++) {
+    if (fingerList[i].compareTo("@empty") != 0)
+      counter++;
+  }
+  return counter;
+}
+
 bool FingerprintManager::getIgnoreTouchRing() {
   return ignoreTouchRing;
 }
@@ -458,11 +488,21 @@ void FingerprintManager::setLedRingWifiConfig() {
   finger.LEDcontrol(FINGERPRINT_LED_BREATHING, 250, FINGERPRINT_LED_RED);
 }
 
+// priority: gong disabled (on + red) > ignore touch ring (on + cyan) > configured color and sequence
 void FingerprintManager::setLedRingReady() {
-  if (!ignoreTouchRing)
-    finger.LEDcontrol(FINGERPRINT_LED_ON, 250, FINGERPRINT_LED_WHITE);
-  else
+  if (!gongEnabled)
+    finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_RED);
+  else if (ignoreTouchRing)
     finger.LEDcontrol(FINGERPRINT_LED_ON, 0, FINGERPRINT_LED_CYAN); // just an indicator for me to see if touch ring is active or not
+  else
+    finger.LEDcontrol(touchRingActiveSequence, 250, touchRingActiveColor);
+}
+
+bool FingerprintManager::setGongEnabled(bool enabled) {
+  if (gongEnabled == enabled)
+    return false;
+  gongEnabled = enabled;
+  return true;
 }
 
 bool FingerprintManager::deleteAll() {
@@ -559,5 +599,12 @@ void FingerprintManager::exportSensorDB() {
     
 void FingerprintManager::importSensorDB() {
 
+}
+
+void FingerprintManager::configLedRing(uint8_t touchRingColor, uint8_t touchRingSequence, uint8_t scanColor, uint8_t matchColor) {
+  this->touchRingActiveColor = touchRingColor;
+  this->touchRingActiveSequence = touchRingSequence;
+  this->scanColor = scanColor;
+  this->matchColor = matchColor;
 }
 

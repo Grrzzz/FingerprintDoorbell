@@ -18,12 +18,19 @@ struct AppSettings {
     String ntpServer = "pool.ntp.org";
     String sensorPin = "00000000";
     String sensorPairingCode = "";
-    bool   sensorPairingValid = false;    
+    bool   sensorPairingValid = false;
+    // LED settings (R503 values: colors 1=red 2=blue 3=purple 4=green 5=yellow 6=cyan 7=white; sequences 1=breathing 2=flashing 3=on 4=off)
+    int8_t touchRingActiveColor = 7;
+    int8_t touchRingActiveSequence = 3;
+    int8_t scanColor = 7;
+    int8_t matchColor = 4;
+    bool   haDiscovery = true; // publish Home Assistant MQTT discovery messages
+    String haDiscoveryPrefix = "homeassistant";
 };
 
 struct RingSettings {    
     bool ringEnabled = true;
-    int ringDuration = 500;
+    int ringDuration = 275;
 };
 
 class SettingsManager {       
