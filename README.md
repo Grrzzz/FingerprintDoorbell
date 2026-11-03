@@ -5,8 +5,115 @@ It's more or less a doorbell with the ability to scan finger prints or a fingerp
 
 <img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/doorbell-sample.jpg"  width="400">
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-manage.png"  width="600">
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-settings.png"  width="600">
+
+> **About this fork**
+> This fork of [frickelzeugs/FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) is version **2.0 "Grrzzz"**. It adds a completely redesigned web interface, **Home Assistant MQTT auto discovery**, configurable LED colors and animations, a small JSON API and a few quality-of-life improvements. Everything is documented below, with screenshots.
+
+<img src="doc/images/ui-overview.png" width="700">
+
+## What's new in this fork
+
+- [New web interface](#1-new-web-interface)
+- [Home Assistant MQTT auto discovery](#2-home-assistant-mqtt-auto-discovery)
+- [LED ring: configurable colors, animations and a clear priority](#3-led-ring-configurable-colors-animations-and-priorities)
+- [MQTT: host:port, availability, status topics, remote reboot](#4-mqtt-improvements)
+- [JSON API](#5-json-api)
+- [Upgrade notes](#upgrade-notes)
+
+### 1. New web interface
+The old Bootstrap form pages (which needed an internet connection for their stylesheet) were replaced by a small single page application served from the ESP32 itself. It has no external dependencies, follows the light/dark mode of your device and works on phones.
+
+| | |
+| --- | --- |
+| **Overview** shows the live state of the doorbell: a sensor disc that mirrors the real LED ring (color and animation), status chips (sensor, MQTT, Home Assistant, pairing), quick switches for "Ignore touch ring" and "Hardware gong", uptime, Wi-Fi signal, IP address, free memory, the last event and a scrollable activity log. | <img src="doc/images/ui-overview.png" width="420"> |
+| **Fingerprints** are shown as cards with rename and delete actions. | <img src="doc/images/ui-fingerprints.png" width="420"> |
+| **Add fingerprint** suggests the first free memory slot and shows the progress of the enrollment live. | <img src="doc/images/ui-enroll.png" width="420"> |
+| **LED & Ring**: pick colors with a click, changes are applied instantly (no restart) and are also published to Home Assistant. The hardware gong (enable/disable and ring duration) is configured here as well. | <img src="doc/images/ui-led.png" width="420"> |
+| **Connectivity**: MQTT broker (`host` or `host:port`), credentials, root topic, NTP server and the Home Assistant discovery settings. A save bar appears when something was changed; saving restarts the device and the page reconnects automatically. | <img src="doc/images/ui-connectivity.png" width="420"> |
+| **System**: firmware updater, sensor pairing, restart, delete all fingerprints and factory reset (all destructive actions ask for confirmation). | <img src="doc/images/ui-system.png" width="420"> |
+| **Responsive**: on small screens the navigation moves to the bottom. | <img src="doc/images/ui-mobile.png" width="220"> |
+
+Screenshots show the real device; fingerprint names, IP addresses and MQTT credentials are blurred or replaced by placeholders.
+
+### 2. Home Assistant MQTT auto discovery
+FingerprintDoorbell now announces itself to Home Assistant. No more hand written MQTT YAML: the device shows up as **one device** with all of its entities, including firmware version and a link to the web interface.
+
+<img src="doc/images/ha-device.png" width="800">
+
+| Entity | Type | MQTT topic (below the root topic) | Description |
+| --- | --- | --- | --- |
+| Ring | binary sensor | `ring` | `on` when somebody rings (unknown finger) |
+| Match | sensor | `matchName` | name of the recognized finger |
+| Confidence | sensor | `matchConfidence` | recognition confidence |
+| Match ID | sensor | `matchId` | memory slot of the recognized finger |
+| Ignore Touch | switch | `ignoreTouchRing` | ignore the touch ring (e.g. in rain) |
+| Ring Enabled | switch | `ringEnabled` | enable/disable the hardware gong |
+| Touch Ring Color / Touch Ring Sequence | select | `touchRingColor`, `touchRingSequence` (+ `/set`) | LED color and animation when ready |
+| Finger Detected Color | select | `scanColor` (+ `/set`) | LED color while a finger is on the sensor |
+| Match Color | select | `matchColor` (+ `/set`) | LED color on a match |
+| Reboot | button | `reboot` (payload `press`) | restarts the device |
+| IP Address, WiFi Signal, Uptime | diagnostic sensors | `ipAddress`, `wifiRssi`, `uptime` | updated every 60 s |
+| Free Heap | diagnostic sensor (disabled by default) | `freeHeap` | free memory |
+| Sensor Connected | diagnostic binary sensor | `sensorConnected` | fingerprint sensor reachable |
+
+How it works:
+- Discovery configs are published retained to `<prefix>/<component>/fingerprintdoorbell_<mac>/<entity>/config`. The unique id is derived from the MAC address and therefore stays the same if you rename the device.
+- All entities use the availability topic `<rootTopic>/connection` (`online` / `offline`). `offline` is the MQTT last will, so Home Assistant marks everything as unavailable when the device disappears.
+- The device republishes everything when Home Assistant restarts (it listens to `<prefix>/status`).
+- State topics are retained, so entities have a value right after (re)discovery.
+- Settings (Connectivity page): switch discovery on/off and set the discovery prefix (default `homeassistant`). Disabling discovery removes the entities from Home Assistant again.
+- The three LED selects change the same settings as the web interface, they are saved on the device and applied immediately.
+
+### 3. LED ring: configurable colors, animations and priorities
+Colors and animations are no longer hard coded. The idea and the R503 color handling come from [PR #26](https://github.com/frickelzeugs/FingerprintDoorbell/pull/26) by TheMaskedDeveloper; it was merged here, extended with live updates, Home Assistant entities and an input validation, and an unsafe pointer in the MQTT `host:port` parsing was fixed.
+
+| State | Default | Configurable |
+| --- | --- | --- |
+| Ready (touch ring active) | white, on | color and animation (off / on / breathing / blinking) |
+| Finger detected | white, breathing | color |
+| Match | green | color |
+| Touch ring ignored | cyan, on | no |
+| Hardware gong disabled | red, on | no |
+
+If several states apply, the ring shows the one with the highest priority: **gong disabled** (red, on) > **ignore touch ring** (cyan, on) > **configured colors**. The dashboard preview follows the same rules. Colors 4-7 (green, yellow, cyan, white) are only supported by newer versions of the R503 sensor, older ones can only show red, blue and purple.
+
+### 4. MQTT improvements
+- The broker can be entered as `host` or `host:port` (default port 1883).
+- New topics (below the root topic):
+
+| Topic | Direction | Values |
+| --- | --- | --- |
+| `connection` | publish, retained | `online` / `offline` (last will) |
+| `uptime`, `wifiRssi`, `ipAddress`, `freeHeap`, `sensorConnected` | publish, retained | device status, refreshed every 60 s |
+| `touchRingColor`, `touchRingSequence`, `scanColor`, `matchColor` | publish, retained | current LED settings (`Red`, `Blue`, `Purple`, `Green`, `Yellow`, `Cyan`, `White`; sequences `Breathing`, `Flashing`, `On`, `Off`) |
+| `<setting>/set`, e.g. `touchRingColor/set` | subscribe | change an LED setting |
+| `ringEnabled` | publish retained / subscribe | `on` / `off`, also published when changed in the web interface |
+| `ignoreTouchRing` | publish retained / subscribe | `on` / `off`, also published when changed in the web interface |
+| `reboot` | subscribe | payload `press` restarts the device |
+
+- The **last will** of the MQTT connection is now `<rootTopic>/connection` = `offline` (retained). Before, it was a text message on `lastLogMessage`.
+- The default ring duration of the hardware gong is now **275 ms** (already stored values are kept).
+
+### 5. JSON API
+The web interface uses a small read/write JSON API that you can also use from scripts:
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /api/status` | hostname, version, uptime, Wi-Fi, IP, memory, mode, sensor/MQTT/pairing state, switches, last event and the log |
+| `GET /api/fingerprints` | `[{"id":1,"name":"..."}, ...]` |
+| `GET /api/settings` | all settings (including the MQTT password, like the old settings page) |
+| `GET /api/led?setting=<touchRingColor\|touchRingSequence\|scanColor\|matchColor>&value=<n>` | change an LED setting instantly (colors 1-7: red, blue, purple, green, yellow, cyan, white; sequence 1-4: breathing, flashing, on, off) |
+| `GET /api/control?ignoreTouchRing=on\|off&ringEnabled=on\|off` | switch without restart |
+
+There is no authentication, as before: operate the device in a trusted network only.
+
+### Upgrade notes
+- **Flash both images.** The web interface lives in the filesystem. When updating over the air (`/update`) upload `firmware.bin` *and* `spiffs.bin` (Filesystem). The old `index.html`, `settings.html` and `bootstrap.min.css` are gone, the new files are `app.html`, `app.js` and `style.css`.
+- Your settings (Wi-Fi, MQTT, fingerprints, pairing) are stored separately and survive the update.
+- **Home Assistant:** if you used hand written MQTT entities before, remove them after switching to discovery, otherwise you have every entity twice. The ring is now a `binary_sensor` (it was a `sensor` with the states `on`/`off`). Automations that triggered on the MQTT topic `<root>/ring` keep working, but a state trigger on the new `binary_sensor.<name>_ring` is the cleaner way.
+- If the build reports that `me-no-dev/ESP Async WebServer` cannot be found in the PlatformIO registry, install the libraries from `lib_deps` manually into `lib/` (the firmware was built that way).
+
+---
 
 ## How does it work?
 If you put your finger on the sensor the system looks for a matching fingerprint. If it doesn't find one, it rings the bell (MQTT message is published and an GPIO pin is set to high). If a match was found, the matching finger ID together with a name and confidence will be published as MQTT messagage. In combination with a home automation solution (like OpenHAB, ioBroker, Home Assistant...) you can then trigger your door opener or smart lock. You can also define actions depending on the finger that was detected, like left thumb opens front door, right thumb opens garage, middle finger...
@@ -182,6 +289,8 @@ As the name already says this will delete all your settings and fingerprints fro
 
 # FAQ
 ## What does the different colors/blinking styles of the LED ring mean?
+In this fork the colors of the ready, finger-detected and match states are configurable and have different defaults, see [LED ring](#3-led-ring-configurable-colors-animations-and-priorities). The table below shows the original behavior of upstream.
+
 |LED ring color| sequence | Meaning | 
 | -------- | -------- | -------- |
 | red | permanent | System is in error state |
