@@ -30,6 +30,12 @@ bool SettingsManager::loadAppSettings() {
         appSettings.touchRingActiveSequence = preferences.getShort("ringActSeq", 3);
         appSettings.scanColor = preferences.getShort("scanColor", 7);
         appSettings.matchColor = preferences.getShort("matchColor", 4);
+        appSettings.scanSequence = preferences.getShort("scanSeq", 1);
+        appSettings.matchSequence = preferences.getShort("matchSeq", 3);
+        appSettings.ignoreColor = preferences.getShort("ignCol", 6);
+        appSettings.ignoreSequence = preferences.getShort("ignSeq", 3);
+        appSettings.gongOffColor = preferences.getShort("gongCol", 1);
+        appSettings.gongOffSequence = preferences.getShort("gongSeq", 3);
         appSettings.haDiscovery = preferences.getBool("haDiscovery", true);
         appSettings.haDiscoveryPrefix = preferences.getString("haPrefix", String("homeassistant"));
         preferences.end();
@@ -76,6 +82,12 @@ void SettingsManager::saveAppSettings() {
     preferences.putShort("ringActSeq", appSettings.touchRingActiveSequence);
     preferences.putShort("scanColor", appSettings.scanColor);
     preferences.putShort("matchColor", appSettings.matchColor);
+    preferences.putShort("scanSeq", appSettings.scanSequence);
+    preferences.putShort("matchSeq", appSettings.matchSequence);
+    preferences.putShort("ignCol", appSettings.ignoreColor);
+    preferences.putShort("ignSeq", appSettings.ignoreSequence);
+    preferences.putShort("gongCol", appSettings.gongOffColor);
+    preferences.putShort("gongSeq", appSettings.gongOffSequence);
     preferences.putBool("haDiscovery", appSettings.haDiscovery);
     preferences.putString("haPrefix", appSettings.haDiscoveryPrefix);
     preferences.end();

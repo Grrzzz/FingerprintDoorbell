@@ -23,6 +23,6 @@ void publishHomeAssistantDiscovery(PubSubClient& mqttClient, bool enabled, const
 void publishDeviceStatus(PubSubClient& mqttClient, const String& rootTopic, bool sensorConnected);
 
 // Publishes the current LED settings (state of the select entities) to "<rootTopic>/..."
-void publishLedSettings(PubSubClient& mqttClient, const String& rootTopic, int touchRingColor, int touchRingSequence, int scanColor, int matchColor);
+void publishLedSetting(PubSubClient& mqttClient, const String& rootTopic, const String& name, int value, bool isColor);
 
 #endif

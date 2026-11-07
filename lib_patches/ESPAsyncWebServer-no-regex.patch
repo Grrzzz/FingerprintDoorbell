@@ -1,0 +1,34 @@
+--- a/src/WebHandlerImpl.h
++++ b/src/WebHandlerImpl.h
+@@ -22,7 +22,9 @@
+ #define ASYNCWEBSERVERHANDLERIMPL_H_
+ 
+ #include <string>
++#ifdef ASYNCWEBSERVER_REGEX
+ #include <regex>
++#endif
+ 
+ #include "stddef.h"
+ #include <time.h>
+@@ -89,6 +91,7 @@
+       if(!(_method & request->method()))
+         return false;
+ 
++#ifdef ASYNCWEBSERVER_REGEX
+       if (_isRegex) {
+         std::regex rgx(_uri.c_str());
+         std::smatch matches;
+@@ -100,7 +103,12 @@
+         } else {
+           return false;
+         }
+-      } else if (_uri.length() && _uri.endsWith("*")) {
++      } else
++#else
++      if (false) {
++      } else
++#endif
++      if (_uri.length() && _uri.endsWith("*")) {
+         String uriTemplate = String(_uri);
+ 	uriTemplate = uriTemplate.substring(0, uriTemplate.length() - 1);
+         if (!request->url().startsWith(uriTemplate))

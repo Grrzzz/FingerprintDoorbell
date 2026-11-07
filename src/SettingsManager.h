@@ -25,6 +25,12 @@ struct AppSettings {
     int8_t touchRingActiveSequence = 3;
     int8_t scanColor = 7;
     int8_t matchColor = 4;
+    int8_t scanSequence = 1;
+    int8_t matchSequence = 3;
+    int8_t ignoreColor = 6;      // touch ring ignored
+    int8_t ignoreSequence = 3;
+    int8_t gongOffColor = 1;     // hardware gong disabled
+    int8_t gongOffSequence = 3;
     bool   haDiscovery = true; // publish Home Assistant MQTT discovery messages
     String haDiscoveryPrefix = "homeassistant";
 };

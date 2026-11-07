@@ -62,16 +62,24 @@ const Entity entities[] = {
   {"binary_sensor", "ring",             "Ring",              "ring",            nullptr, Options::none, "\"payload_on\":\"on\",\"payload_off\":\"off\",\"icon\":\"mdi:doorbell\""},
   {"sensor",        "match_name",       "Match",             "matchName",       nullptr, Options::none, "\"icon\":\"mdi:fingerprint\""},
   {"sensor",        "match_confidence", "Confidence",        "matchConfidence", nullptr, Options::none, "\"icon\":\"mdi:percent\""},
+    {"sensor",        "disabled_match",   "Disabled Match",    "disabledMatchName", nullptr, Options::none, "\"icon\":\"mdi:fingerprint-off\",\"force_update\":true,\"json_attributes_topic\":\"@ROOT@/disabledMatchInfo\""},
   {"sensor",        "match_id",         "Match ID",          "matchId",         nullptr, Options::none, "\"icon\":\"mdi:identifier\""},
   // controls (switches use one topic for state and command)
   {"switch",        "ignore_touch",     "Ignore Touch",      "ignoreTouchRing", "ignoreTouchRing", Options::none, "\"payload_on\":\"on\",\"payload_off\":\"off\",\"state_on\":\"on\",\"state_off\":\"off\",\"icon\":\"mdi:hand-back-left-off\""},
   {"switch",        "ring_enabled",     "Ring Enabled",      "ringEnabled",     "ringEnabled",     Options::none, "\"payload_on\":\"on\",\"payload_off\":\"off\",\"state_on\":\"on\",\"state_off\":\"off\",\"icon\":\"mdi:bell-ring\""},
-  {"button",        "reboot",           "Reboot",            nullptr,           "reboot",          Options::none, "\"payload_press\":\"press\",\"device_class\":\"restart\",\"entity_category\":\"config\""},
+  {"button",        "ring_gong",        "Ring Gong",         nullptr,           "gong",            Options::none, "\"payload_press\":\"press\",\"icon\":\"mdi:bell-ring-outline\""},
+  {"button",        "reboot",           "Reboot",            nullptr,           "reboot",          Options::none, "\"payload_press\":\"press\",\"device_class\":\"restart\""},
   // LED settings (same as in the web interface)
   {"select",        "led_ring_color",   "Touch Ring Color",    "touchRingColor",    "touchRingColor/set",    Options::colors,    "\"icon\":\"mdi:palette\",\"entity_category\":\"config\""},
   {"select",        "led_ring_sequence","Touch Ring Sequence", "touchRingSequence", "touchRingSequence/set", Options::sequences, "\"icon\":\"mdi:led-on\",\"entity_category\":\"config\""},
   {"select",        "led_scan_color",   "Finger Detected Color","scanColor",        "scanColor/set",         Options::colors,    "\"icon\":\"mdi:palette\",\"entity_category\":\"config\""},
   {"select",        "led_match_color",  "Match Color",         "matchColor",        "matchColor/set",        Options::colors,    "\"icon\":\"mdi:palette\",\"entity_category\":\"config\""},
+  {"select",        "led_scan_sequence", "Finger Detected Sequence", "scanSequence", "scanSequence/set", Options::sequences, "\"icon\":\"mdi:led-on\",\"entity_category\":\"config\""},
+  {"select",        "led_match_sequence", "Match Sequence", "matchSequence", "matchSequence/set", Options::sequences, "\"icon\":\"mdi:led-on\",\"entity_category\":\"config\""},
+  {"select",        "led_ignore_color", "Ignore Touch Color", "ignoreColor", "ignoreColor/set", Options::colors, "\"icon\":\"mdi:palette\",\"entity_category\":\"config\""},
+  {"select",        "led_ignore_sequence", "Ignore Touch Sequence", "ignoreSequence", "ignoreSequence/set", Options::sequences, "\"icon\":\"mdi:led-on\",\"entity_category\":\"config\""},
+  {"select",        "led_gongoff_color", "Gong Disabled Color", "gongOffColor", "gongOffColor/set", Options::colors, "\"icon\":\"mdi:palette\",\"entity_category\":\"config\""},
+  {"select",        "led_gongoff_sequence", "Gong Disabled Sequence", "gongOffSequence", "gongOffSequence/set", Options::sequences, "\"icon\":\"mdi:led-on\",\"entity_category\":\"config\""},
   // diagnostics
   {"sensor",        "uptime",           "Uptime",            "uptime",          nullptr, Options::none, "\"device_class\":\"duration\",\"unit_of_measurement\":\"s\",\"state_class\":\"total_increasing\",\"entity_category\":\"diagnostic\""},
   {"sensor",        "wifi_rssi",        "WiFi Signal",       "wifiRssi",        nullptr, Options::none, "\"device_class\":\"signal_strength\",\"unit_of_measurement\":\"dBm\",\"state_class\":\"measurement\",\"entity_category\":\"diagnostic\""},
@@ -120,7 +128,9 @@ void publishHomeAssistantDiscovery(PubSubClient& mqttClient, bool enabled, const
         payload += "," + optionsJson(LedColorNames, 7);
       else if (e.options == Options::sequences)
         payload += "," + optionsJson(LedSequenceNames, 4);
-      payload += String(",") + e.extra + "," + device + "}";
+      String extra = e.extra;
+      extra.replace("@ROOT@", rootTopic);
+      payload += String(",") + extra + "," + device + "}";
     }
     mqttClient.publish(configTopic.c_str(), payload.c_str(), true);
   }
@@ -136,13 +146,9 @@ void publishDeviceStatus(PubSubClient& mqttClient, const String& rootTopic, bool
   mqttClient.publish((rootTopic + "/sensorConnected").c_str(), sensorConnected ? "on" : "off", true);
 }
 
-void publishLedSettings(PubSubClient& mqttClient, const String& rootTopic, int touchRingColor, int touchRingSequence, int scanColor, int matchColor) {
-  if (touchRingColor >= 1 && touchRingColor <= 7)
-    mqttClient.publish((rootTopic + "/touchRingColor").c_str(), LedColorNames[touchRingColor - 1], true);
-  if (touchRingSequence >= 1 && touchRingSequence <= 4)
-    mqttClient.publish((rootTopic + "/touchRingSequence").c_str(), LedSequenceNames[touchRingSequence - 1], true);
-  if (scanColor >= 1 && scanColor <= 7)
-    mqttClient.publish((rootTopic + "/scanColor").c_str(), LedColorNames[scanColor - 1], true);
-  if (matchColor >= 1 && matchColor <= 7)
-    mqttClient.publish((rootTopic + "/matchColor").c_str(), LedColorNames[matchColor - 1], true);
+void publishLedSetting(PubSubClient& mqttClient, const String& rootTopic, const String& name, int value, bool isColor) {
+  if (isColor && value >= 1 && value <= 7)
+    mqttClient.publish((rootTopic + "/" + name).c_str(), LedColorNames[value - 1], true);
+  else if (!isColor && value >= 1 && value <= 4)
+    mqttClient.publish((rootTopic + "/" + name).c_str(), LedSequenceNames[value - 1], true);
 }

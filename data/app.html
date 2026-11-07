@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" charset="utf-8">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/style.css?v=11">
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+  <link rel="stylesheet" href="/style.css?v=48">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -15,6 +16,10 @@
     <symbol id="i-led" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></symbol>
     <symbol id="i-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1"/></symbol>
     <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
@@ -37,7 +42,15 @@
       <a href="#connectivity" data-view="connectivity"><svg><use href="#i-net"/></svg><span>Connectivity</span></a>
       <a href="#system" data-view="system"><svg><use href="#i-cog"/></svg><span>System</span></a>
     </nav>
-    <div class="rail-foot"><span class="dot" id="liveDot"></span><span id="liveText">connecting&hellip;</span></div>
+    <div class="rail-foot">
+      <div class="theme-seg" id="themeSeg" role="group" aria-label="Color theme">
+        <button type="button" data-theme="auto">Auto</button><button type="button" data-theme="light">Light</button><button type="button" data-theme="dark">Dark</button>
+      </div>
+      <div class="rail-links">
+        <a href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>Grrzzz fork (2.0)</a>
+        <a href="https://github.com/frickelzeugs/FingerprintDoorbell" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>Original project</a>
+      </div>
+    </div>
   </aside>
 
   <main class="content">
@@ -89,7 +102,10 @@
     <section class="view" id="view-fingerprints" hidden>
       <header class="with-action">
         <div><h1>Fingerprints</h1><p id="fpSub">Stored on the sensor.</p></div>
-        <button class="btn" id="btnAdd"><svg><use href="#i-plus"/></svg>Add fingerprint</button>
+        <div class="header-tools">
+          <div class="search-row"><svg><use href="#i-search"/></svg><input id="fpSearch" type="search" placeholder="Quicksearch" autocomplete="off" aria-label="Quicksearch fingerprints"></div>
+          <button class="btn" id="btnAdd"><svg><use href="#i-plus"/></svg>Add fingerprint</button>
+        </div>
       </header>
       <div id="fingerGrid" class="finger-grid"></div>
     </section>
@@ -98,45 +114,7 @@
     <section class="view" id="view-led" hidden>
       <header><h1>LED &amp; Ring</h1><p>Changes apply instantly. Not all R503 sensor versions support all colors, older ones only red, blue and purple.</p></header>
 
-      <div class="card led-card">
-        <div class="sensor-disc small" id="prevReady" data-seq="3"><svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-led" cx="50" cy="50" r="42"/></svg><svg class="fp"><use href="#i-fp"/></svg></div>
-        <div class="led-body">
-          <h3>Ready</h3><p class="sub">Idle, touch ring active.</p>
-          <div class="field"><div class="label">Color</div><div class="swatches" data-led="touchRingActiveColor" data-api="touchRingColor"></div></div>
-          <div class="field"><div class="label">Animation</div><div class="seg" id="segSeq"></div></div>
-        </div>
-      </div>
-
-      <div class="card led-card">
-        <div class="sensor-disc small" id="prevScan" data-seq="3"><svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-led" cx="50" cy="50" r="42"/></svg><svg class="fp"><use href="#i-fp"/></svg></div>
-        <div class="led-body">
-          <h3>Finger detected</h3><p class="sub">While a finger is on the sensor (breathing).</p>
-          <div class="field"><div class="swatches" data-led="scanColor" data-api="scanColor"></div></div>
-        </div>
-      </div>
-
-      <div class="card led-card">
-        <div class="sensor-disc small" id="prevMatch" data-seq="3"><svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-led" cx="50" cy="50" r="42"/></svg><svg class="fp"><use href="#i-fp"/></svg></div>
-        <div class="led-body">
-          <h3>Match</h3><p class="sub">Fingerprint was recognized.</p>
-          <div class="field"><div class="swatches" data-led="matchColor" data-api="matchColor"></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Hardware gong</h2>
-        <p class="sub">Signal output for a connected doorbell gong.</p>
-        <div class="toggle-row" style="margin-bottom:16px">
-          <div><div class="t">Gong enabled</div><div class="d">Switch the output on when an unknown finger rings.</div></div>
-          <label class="switch"><input type="checkbox" id="ringEnabled"><span class="track"></span></label>
-        </div>
-        <div class="field">
-          <label for="ringDuration">Ring duration (ms)</label>
-          <input id="ringDuration" type="number" min="50" max="5000" step="25" placeholder="275">
-          <span class="hint">Duration of the gong signal in milliseconds (default 275).</span>
-        </div>
-        <div class="actions"><button class="btn" id="btnSaveRing">Save</button></div>
-      </div>
+      <div id="ledCards"></div>
     </section>
 
     <!-- ================= CONNECTIVITY ================= -->
@@ -158,14 +136,7 @@
           </div>
         </div>
         <span class="hint" style="margin:-6px 0 16px">Leave username and password empty if your broker does not require authentication.</span>
-        <div class="row">
-          <div class="field"><label for="mqttRootTopic">Root topic</label><input id="mqttRootTopic" type="text"></div>
-          <div class="field"><label for="ntpServer">NTP server</label><input id="ntpServer" type="text" placeholder="pool.ntp.org"></div>
-        </div>
-        <div class="row">
-          <div class="field"><label for="timezone">Time zone</label><select id="timezone"><option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe/Berlin, Paris, Rome, Madrid</option><option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London, Dublin, Lisbon</option><option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Helsinki, Athens, Kyiv</option><option value="MSK-3">Europe/Moscow, Istanbul</option><option value="UTC0">UTC</option><option value="EST5EDT,M3.2.0,M11.1.0">US Eastern (New York)</option><option value="CST6CDT,M3.2.0,M11.1.0">US Central (Chicago)</option><option value="MST7MDT,M3.2.0,M11.1.0">US Mountain (Denver)</option><option value="PST8PDT,M3.2.0,M11.1.0">US Pacific (Los Angeles)</option><option value="&lt;+04&gt;-4">Asia/Dubai</option><option value="IST-5:30">Asia/Kolkata</option><option value="CST-8">Asia/Shanghai, Singapore</option><option value="JST-9">Asia/Tokyo</option><option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Australia/Sydney</option></select></div>
-          <div class="field"></div>
-        </div>
+        <div class="field"><label for="mqttRootTopic">Root topic</label><input id="mqttRootTopic" type="text"></div>
         <span class="hint" id="topicHint"></span>
       </div>
 
@@ -190,12 +161,8 @@
 
       <div class="card">
         <div class="list-row">
-          <div><div class="t">Firmware</div><div class="d" id="sysVersion">-</div></div>
-          <a class="btn ghost" href="/update">Open updater</a>
-        </div>
-        <div class="list-row">
-          <div><div class="t">Sensor pairing</div><div class="d" id="sysPairing">-</div></div>
-          <button class="btn ghost" id="btnPair">Pair new sensor</button>
+          <div><div class="t">Firmware</div><div class="d" id="sysVersion">-</div><div class="d" id="sysUpdate"></div></div>
+          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
         </div>
         <div class="list-row">
           <div><div class="t">Restart device</div><div class="d">Reboots the ESP32.</div></div>
@@ -203,9 +170,40 @@
         </div>
       </div>
 
+      <div class="card">
+        <h2>Storage</h2>
+        <p class="sub">Flash area for fingerprint names, schedules and settings.</p>
+        <div class="stack" id="stStack"></div>
+        <div class="stack-legend" id="stLegend"></div>
+        <div class="hint" id="stHint"></div>
+      </div>
+
+      <div class="card">
+        <h2>Time</h2>
+        <p class="sub">Used for timestamps and fingerprint schedules.</p>
+        <div class="row">
+          <div class="field"><label for="ntpServer">NTP server</label><input id="ntpServer" type="text" placeholder="pool.ntp.org"></div>
+          <div class="field"><label for="timezone">Time zone</label><select id="timezone"><option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe/Berlin, Paris, Rome, Madrid</option><option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London, Dublin, Lisbon</option><option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Helsinki, Athens, Kyiv</option><option value="MSK-3">Europe/Moscow, Istanbul</option><option value="UTC0">UTC</option><option value="EST5EDT,M3.2.0,M11.1.0">US Eastern (New York)</option><option value="CST6CDT,M3.2.0,M11.1.0">US Central (Chicago)</option><option value="MST7MDT,M3.2.0,M11.1.0">US Mountain (Denver)</option><option value="PST8PDT,M3.2.0,M11.1.0">US Pacific (Los Angeles)</option><option value="&lt;+04&gt;-4">Asia/Dubai</option><option value="IST-5:30">Asia/Kolkata</option><option value="CST-8">Asia/Shanghai, Singapore</option><option value="JST-9">Asia/Tokyo</option><option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Australia/Sydney</option></select></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Hardware gong</h2>
+        <p class="sub">Signal output for a connected doorbell gong. Switch it on or off on the Overview page.</p>
+        <div class="field">
+          <label for="ringDuration">Ring duration (ms)</label>
+          <input id="ringDuration" type="number" min="50" max="5000" step="25" placeholder="275">
+          <span class="hint">Duration of the gong signal in milliseconds (default 275).</span>
+        </div>
+      </div>
+
       <div class="card danger-zone">
         <h2>Danger zone</h2>
         <p class="sub">These actions cannot be undone.</p>
+        <div class="list-row">
+          <div><div class="t">Sensor pairing</div><div class="d" id="sysPairing">-</div></div>
+          <button class="btn danger ghost" id="btnPair">Pair new sensor</button>
+        </div>
         <div class="list-row">
           <div><div class="t">Delete all fingerprints</div><div class="d">Empties the sensor database.</div></div>
           <button class="btn danger ghost" id="btnDeleteAll">Delete all</button>
@@ -221,7 +219,7 @@
 </div>
 
 <div class="savebar" id="savebar" hidden>
-  <span>Unsaved connectivity changes</span>
+  <span id="barText">Unsaved changes</span>
   <span><button class="btn ghost sm" id="btnDiscard">Discard</button> <button class="btn sm" id="btnSaveAll">Save &amp; restart</button></span>
 </div>
 
@@ -232,7 +230,7 @@
     <p class="sub">The finger has to be placed on the sensor several times.</p>
     <div class="row">
       <div class="field"><label for="enSlot">Memory slot (1-200)</label><input id="enSlot" type="number" min="1" max="200"></div>
-      <div class="field"><label for="enName">Name</label><input id="enName" type="text" placeholder="optional" autocomplete="off"></div>
+      <div class="field"><label for="enName">Name</label><input id="enName" type="text" maxlength="48" placeholder="optional" autocomplete="off"></div>
     </div>
     <div class="field">
       <div class="label">Scan iterations</div>
@@ -251,11 +249,34 @@
 </dialog>
 
 <!-- rename dialog -->
+<dialog id="dlgSchedule">
+  <div class="dlg-body">
+    <h2>Fingerprint schedule</h2>
+    <p class="sub" id="schSlot"></p>
+    <div class="toggle-row" style="margin-bottom:14px">
+      <div><div class="t">Only allow within time windows</div><div class="d">Outside all windows the fingerprint is treated like an unknown finger.</div></div>
+      <label class="switch"><input type="checkbox" id="schOn"><span class="track"></span></label>
+    </div>
+    <div id="schBody">
+      <div class="sch-rules" id="schRules"></div>
+      <button type="button" class="add-window" id="btnAddWindow">+ Add time window</button>
+      <div class="wk">
+        <div class="label">Week overview</div>
+        <div id="schWeek"></div>
+        <div class="wk-scale"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      </div>
+      <span class="hint">Uses the time zone from Connectivity. A later start than end continues after midnight. Without a valid device time (no NTP) a scheduled fingerprint stays inactive.</span>
+    </div>
+    <div class="time-pop" id="timePop" hidden></div>
+    <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnScheduleOk">Save</button></div>
+  </div>
+</dialog>
+
 <dialog id="dlgRename">
   <div class="dlg-body">
     <h2>Rename fingerprint</h2>
     <p class="sub" id="rnSlot"></p>
-    <div class="field"><label for="rnName">Name</label><input id="rnName" type="text" autocomplete="off"></div>
+    <div class="field"><label for="rnName">Name</label><input id="rnName" type="text" maxlength="48" autocomplete="off"></div>
     <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnRenameOk">Save</button></div>
   </div>
 </dialog>
@@ -270,8 +291,8 @@
 </dialog>
 
 <div id="toast"></div>
-<div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p></div></div>
+<div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=11"></script>
+<script src="/app.js?v=48"></script>
 </body>
 </html>

@@ -12,12 +12,14 @@
 #include "FingerprintManager.h"
 #include "SettingsManager.h"
 #include "HomeAssistantDiscovery.h"
+#include "SelfUpdate.h"
 #include <esp_timer.h>
+#include <esp_system.h>
 #include "global.h"
 
 enum class Mode { scan, enroll, wificonfig, maintenance };
 
-const char* VersionInfo = "2.0.1 Grrzzz";
+const char* VersionInfo = "2.1 Grrzzz";
 
 // ===================================================================================================================
 // Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!
@@ -40,6 +42,7 @@ const int   doorbellOutputPin = 19; // pin connected to the doorbell (when using
 const int logMessagesCount = 20;
 String logMessages[logMessagesCount]; // log messages, 0=most recent log message
 bool shouldReboot = false;
+bool gongRequested = false; // set by MQTT button, handled in loop()
 unsigned long wifiReconnectPreviousMillis = 0;
 unsigned long mqttReconnectPreviousMillis = 0;
 unsigned long mqttStatusPreviousMillis = 0;
@@ -70,7 +73,7 @@ bool mqttConfigValid = true;
 Match lastMatch;
 
 // last doorbell event (shown on the web dashboard)
-String lastEventType = ""; // "match" or "ring"
+String lastEventType = ""; // "match", "ring" or "disabled"
 String lastEventName = "";
 int lastEventId = 0;
 int lastEventConfidence = 0;
@@ -113,26 +116,49 @@ void setRingEnabled(bool enabled) {
     notifyClients(String("ringEnabled is now '") + (enabled ? "on" : "off") + "'");
 }
 
+// one entry per LED state: setting names are "<key>Color" and "<key>Sequence" (also the MQTT topic names)
+struct LedSlot {
+  const char* key;
+  int8_t AppSettings::*color;
+  int8_t AppSettings::*sequence;
+};
+const LedSlot ledSlots[] = {
+  {"touchRing", &AppSettings::touchRingActiveColor, &AppSettings::touchRingActiveSequence},
+  {"scan",      &AppSettings::scanColor,            &AppSettings::scanSequence},
+  {"match",     &AppSettings::matchColor,           &AppSettings::matchSequence},
+  {"ignore",    &AppSettings::ignoreColor,          &AppSettings::ignoreSequence},
+  {"gongOff",   &AppSettings::gongOffColor,         &AppSettings::gongOffSequence},
+};
+
+void configLedRingFromSettings(const AppSettings& s) {
+  auto style = [&](const LedSlot& slot, uint8_t speed) { return LedStyle{(uint8_t)(s.*slot.color), (uint8_t)(s.*slot.sequence), speed}; };
+  fingerManager.configLedRing(style(ledSlots[0], 250), style(ledSlots[1], 25), style(ledSlots[2], 25), style(ledSlots[3], 250), style(ledSlots[4], 250));
+}
+
+void publishAllLedSettings(const AppSettings& s) {
+  for (const LedSlot& slot : ledSlots) {
+    publishLedSetting(mqttClient, s.mqttRootTopic, String(slot.key) + "Color", s.*slot.color, true);
+    publishLedSetting(mqttClient, s.mqttRootTopic, String(slot.key) + "Sequence", s.*slot.sequence, false);
+  }
+}
+
 // changes an LED setting by its R503 value (1-7 colors, 1-4 sequence), persists and applies it immediately
 void applyLedSettingValue(const String& setting, int value) {
   AppSettings settings = settingsManager.getAppSettings();
-  if (setting == "touchRingColor" && value >= 1 && value <= 7)
-    settings.touchRingActiveColor = value;
-  else if (setting == "touchRingSequence" && value >= 1 && value <= 4)
-    settings.touchRingActiveSequence = value;
-  else if (setting == "scanColor" && value >= 1 && value <= 7)
-    settings.scanColor = value;
-  else if (setting == "matchColor" && value >= 1 && value <= 7)
-    settings.matchColor = value;
-  else
+  bool found = false;
+  for (const LedSlot& slot : ledSlots) {
+    if (setting == String(slot.key) + "Color" && value >= 1 && value <= 7) { settings.*slot.color = value; found = true; }
+    else if (setting == String(slot.key) + "Sequence" && value >= 1 && value <= 4) { settings.*slot.sequence = value; found = true; }
+  }
+  if (!found)
     return;
 
   settingsManager.saveAppSettings(settings);
-  fingerManager.configLedRing(settings.touchRingActiveColor, settings.touchRingActiveSequence, settings.scanColor, settings.matchColor);
+  configLedRingFromSettings(settings);
   if (currentMode == Mode::scan && fingerManager.connected)
     fingerManager.setLedRingReady();
   if (mqttClient.connected())
-    publishLedSettings(mqttClient, settings.mqttRootTopic, settings.touchRingActiveColor, settings.touchRingActiveSequence, settings.scanColor, settings.matchColor);
+    publishAllLedSettings(settings);
 }
 
 String getStatusJson() {
@@ -160,6 +186,20 @@ String getStatusJson() {
   json += String(",\"ignoreTouch\":") + (fingerManager.getIgnoreTouchRing() ? "true" : "false");
   json += String(",\"ringEnabled\":") + (settingsManager.getRingSettings().ringEnabled ? "true" : "false");
   json += ",\"fingerCount\":" + String(fingerManager.getFingerCount());
+  json += ",\"update\":" + selfUpdateStatusJson();
+  {
+    // why the device (re)started last time: useful when an update or a crash interrupted it
+    static const char* const reasons[] = {"unknown", "power on", "external", "software", "panic", "interrupt watchdog", "task watchdog", "other watchdog", "deep sleep", "brownout", "sdio"};
+    int reason = (int)esp_reset_reason();
+    json += String(",\"resetReason\":\"") + (reason >= 0 && reason < 11 ? reasons[reason] : "unknown") + "\"";
+  }
+    uint32_t storageUsed, storageTotal;
+  FingerprintManager::storageStats(storageUsed, storageTotal);
+  json += ",\"storage\":{\"used\":" + String(storageUsed) + ",\"total\":" + String(storageTotal) + "}";
+  // device clock (time zone applied), used by the web interface to mark "now" in the schedule views
+  struct tm clockInfo;
+  if (getLocalTime(&clockInfo, 0))
+    json += ",\"clock\":{\"day\":" + String((clockInfo.tm_wday + 6) % 7) + ",\"min\":" + String(clockInfo.tm_hour * 60 + clockInfo.tm_min) + "}";
   json += ",\"lastEvent\":{\"type\":\"" + lastEventType + "\",\"name\":\"" + jsonEscape(lastEventName) + "\",\"id\":" + String(lastEventId)
           + ",\"confidence\":" + String(lastEventConfidence) + ",\"time\":\"" + jsonEscape(lastEventTime) + "\"}";
   // log messages, oldest first
@@ -193,6 +233,12 @@ String getSettingsJson() {
   json += ",\"touchRingActiveSequence\":" + String(s.touchRingActiveSequence);
   json += ",\"scanColor\":" + String(s.scanColor);
   json += ",\"matchColor\":" + String(s.matchColor);
+  json += ",\"scanSequence\":" + String(s.scanSequence);
+  json += ",\"matchSequence\":" + String(s.matchSequence);
+  json += ",\"ignoreColor\":" + String(s.ignoreColor);
+  json += ",\"ignoreSequence\":" + String(s.ignoreSequence);
+  json += ",\"gongOffColor\":" + String(s.gongOffColor);
+  json += ",\"gongOffSequence\":" + String(s.gongOffSequence);
   json += String(",\"ringEnabled\":") + (r.ringEnabled ? "true" : "false");
   json += ",\"ringDuration\":" + String(r.ringDuration);
   return json + "}";
@@ -506,12 +552,68 @@ void startWebserver(){
       if(request->hasArg("startEnrollment"))
       {
         enrollId = request->arg("newFingerprintId");
-        enrollName = request->arg("newFingerprintName");
+        enrollName = FingerprintManager::limitName(request->arg("newFingerprintName"));
         numIterations = request->arg("newFingerprintIteration");
         fingerManager.enrollAbort = false;
         currentMode = Mode::enroll;
       }
       request->redirect("/");
+    });
+
+    // switch a fingerprint on/off or set its schedule: /api/finger/policy?id=1&enabled=0&scheduled=1&w=31,480,720,0;96,0,0,1
+    // w = up to 4 windows "days,from,to,allDay" separated by ";" (days: bit 0 = Monday ... bit 6 = Sunday, times in minutes)
+    webServer.on("/api/finger/policy", HTTP_GET, [](AsyncWebServerRequest *request){
+      int id = request->arg("id").toInt();
+      if (id < 1 || id > 200) {
+        request->send(400, "text/plain", "invalid id");
+        return;
+      }
+      FingerPolicy policy = fingerManager.getFingerPolicy(id);
+      if (request->hasArg("enabled")) policy.enabled = request->arg("enabled") == "1";
+      if (request->hasArg("scheduled")) policy.scheduled = request->arg("scheduled") == "1";
+      if (request->hasArg("w")) {
+        String w = request->arg("w");
+        policy.windowCount = 0;
+        int pos = 0;
+        while (pos < (int)w.length() && policy.windowCount < MAX_FINGER_WINDOWS) {
+          int end = w.indexOf(';', pos);
+          if (end < 0) end = w.length();
+          int d = 0, f = 0, t = 0, a = 0;
+          if (sscanf(w.substring(pos, end).c_str(), "%d,%d,%d,%d", &d, &f, &t, &a) >= 3) {
+            FingerWindow& win = policy.windows[policy.windowCount++];
+            win.days = constrain(d, 0, 127);
+            win.from = constrain(f, 0, 1439);
+            win.to = constrain(t, 0, 1439);
+            win.allDay = a != 0;
+          }
+          pos = end + 1;
+        }
+      }
+      if (!fingerManager.setFingerPolicy(id, policy)) {
+        request->send(507, "text/plain", "storage full");
+        return;
+      }
+      notifyClients(String("Fingerprint #") + id + (policy.scheduled ? String(" follows its schedule (") + policy.windowCount + " time window(s))" : (policy.enabled ? " enabled" : " disabled")));
+      sendJson(request, fingerManager.getFingerListAsJson());
+    });
+
+    // one-click update from the GitHub release: /api/selfupdate/start?tag=v2.1
+    webServer.on("/api/selfupdate/start", HTTP_GET, [](AsyncWebServerRequest *request){
+      String error;
+      if (currentMode == Mode::enroll) {
+        request->send(409, "text/plain", "finish or cancel the enrollment first");
+        return;
+      }
+      if (!selfUpdateStart(request->arg("tag"), error)) {
+        request->send(400, "text/plain", error);
+        return;
+      }
+      sendJson(request, "{\"ok\":true}");
+    });
+
+    // how the flash area for names, schedules and settings is used (for the chart on the System page)
+    webServer.on("/api/storage", HTTP_GET, [](AsyncWebServerRequest *request){
+      sendJson(request, fingerManager.storageDetailsJson());
     });
 
     // cancel a running enrollment (e.g. the dialog was closed)
@@ -534,7 +636,7 @@ void startWebserver(){
         else if (request->hasArg("btnRename"))
         {
           int id = request->arg("selectedFingerprint").toInt();
-          String newName = request->arg("renameNewName");
+          String newName = FingerprintManager::limitName(request->arg("renameNewName"));
           fingerManager.renameFinger(id, newName);
           updateClientsFingerlist(fingerManager.getFingerListAsJson());
         }
@@ -558,10 +660,6 @@ void startWebserver(){
         settings.haDiscoveryPrefix.trim();
         if (settings.haDiscoveryPrefix.isEmpty())
           settings.haDiscoveryPrefix = "homeassistant";
-        settings.touchRingActiveColor = constrain(request->arg("touchRingActiveColor").toInt(), 1, 7);
-        settings.touchRingActiveSequence = constrain(request->arg("touchRingActiveSequence").toInt(), 1, 4);
-        settings.scanColor = constrain(request->arg("scanColor").toInt(), 1, 7);
-        settings.matchColor = constrain(request->arg("matchColor").toInt(), 1, 7);
         settingsManager.saveAppSettings(settings);
         request->redirect("/");  
         shouldReboot = true;
@@ -575,7 +673,8 @@ void startWebserver(){
       {
         Serial.println("Save ring settings");
         RingSettings settings = settingsManager.getRingSettings();
-        settings.ringEnabled = request->arg("ringEnabled").equals("on");
+        if (request->hasArg("ringEnabled"))
+          settings.ringEnabled = request->arg("ringEnabled").equals("on");
         settings.ringDuration = request->arg("ringDuration").toInt();        
         settingsManager.saveRingSettings(settings);
         publishControlState();
@@ -678,7 +777,7 @@ void publishMqttState() {
   publishHomeAssistantDiscovery(mqttClient, settings.haDiscovery, settings.haDiscoveryPrefix, settings.mqttRootTopic,
                                 settingsManager.getWifiSettings().hostname, VersionInfo);
   publishDeviceStatus(mqttClient, settings.mqttRootTopic, fingerManager.connected);
-  publishLedSettings(mqttClient, settings.mqttRootTopic, settings.touchRingActiveColor, settings.touchRingActiveSequence, settings.scanColor, settings.matchColor);
+  publishAllLedSettings(settings);
   mqttStatusPreviousMillis = millis();
 }
 
@@ -717,6 +816,11 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
   }
 
   // Check incomming message for interesting topics
+  if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/gong") {
+    if (messageTemp == "press") {
+      gongRequested = true;
+    }
+  }
   if (String(topic) == String(settingsManager.getAppSettings().mqttRootTopic) + "/reboot") {
     if (messageTemp == "press") {
       shouldReboot = true;
@@ -802,6 +906,7 @@ void connectMqttClient() {
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ignoreTouchRing").c_str(), 1); // QoS = 1 (at least once)
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/ringEnabled").c_str(), 1); // QoS = 1 (at least once)
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/reboot").c_str(), 1); // QoS = 1 (at least once)
+      mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/gong").c_str(), 1);
       mqttClient.subscribe((settingsManager.getAppSettings().mqttRootTopic + "/+/set").c_str(), 1); // LED settings
       mqttClient.subscribe((settingsManager.getAppSettings().haDiscoveryPrefix + "/status").c_str(), 1); // Home Assistant birth message
     
@@ -863,11 +968,19 @@ void doScan()
     case ScanResult::noMatchFound:
       notifyClients(String("No Match Found (Code ") + match.returnCode + ")");
       if (match.scanResult != lastMatch.scanResult) {
-        lastEventType = "ring";
-        lastEventName = "";
-        lastEventId = 0;
-        lastEventConfidence = 0;
+                bool disabledFinger = match.disabledId != 0;
+        lastEventType = disabledFinger ? "disabled" : "ring";
+        lastEventName = disabledFinger ? match.disabledName : "";
+        lastEventId = disabledFinger ? match.disabledId : 0;
+        lastEventConfidence = disabledFinger ? match.matchConfidence : 0;
         lastEventTime = getTimestampString();
+        if (disabledFinger && mqttClient.connected()) {
+          // not retained: every detection is a new event
+          String info = "{\"id\":" + String(match.disabledId) + ",\"name\":\"" + jsonEscape(match.disabledName) + "\",\"reason\":\"" + match.disabledReason +
+                        "\",\"confidence\":" + String(match.matchConfidence) + ",\"time\":\"" + jsonEscape(lastEventTime) + "\"}";
+          mqttClient.publish((String(mqttRootTopic) + "/disabledMatchInfo").c_str(), info.c_str());
+          mqttClient.publish((String(mqttRootTopic) + "/disabledMatchName").c_str(), match.disabledName.c_str());
+        }
         if(settingsManager.getRingSettings().ringEnabled) {
           digitalWrite(doorbellOutputPin, HIGH);
         }
@@ -1011,7 +1124,7 @@ void setup()
       }
       if (fingerManager.connected) {
         const AppSettings& s = settingsManager.getAppSettings();
-        fingerManager.configLedRing(s.touchRingActiveColor, s.touchRingActiveSequence, s.scanColor, s.matchColor);
+        configLedRingFromSettings(s);
         fingerManager.setLedRingReady();
       }
       else
@@ -1030,6 +1143,21 @@ void loop()
   // shouldReboot flag for supporting reboot through webui
   if (shouldReboot) {
     reboot();
+  }
+
+  // one-click update runs in its own task, keep the sensor and the rest quiet meanwhile
+  if (selfUpdateRunning()) {
+    delay(50);
+    return;
+  }
+
+  // manual gong from Home Assistant (rings even if the automatic gong is disabled)
+  if (gongRequested) {
+    gongRequested = false;
+    notifyClients("Gong triggered manually");
+    digitalWrite(doorbellOutputPin, HIGH);
+    delay(settingsManager.getRingSettings().ringDuration);
+    digitalWrite(doorbellOutputPin, LOW);
   }
   
   // Reconnect handling

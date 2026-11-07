@@ -1,310 +1,273 @@
-# FingerprintDoorbell
+# FingerprintDoorbell 2.1 "Grrzzz"
 
-## What is FingerprintDoorbell?
-It's more or less a doorbell with the ability to scan finger prints or a fingerprint reader with the ability to act as doorbell, depending on your perspective ;-). But lets speak some images:
+A fingerprint reader that doubles as a doorbell: an **ESP32** and a **Grow R503** sensor recognize fingers, ring the bell for everybody else and tell your smart home about both. This is a fork of [frickelzeugs/FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) with a completely new web interface, Home Assistant auto discovery, per-fingerprint schedules, configurable LED states and one-click updates.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/doorbell-sample.jpg"  width="400">
+<img src="doc/images/ui-overview.png" width="760">
 
+- [What is new in this fork](#what-is-new-in-this-fork)
+- [Web interface](#web-interface)
+- [Fingerprints: names, schedules, on and off](#fingerprints-names-schedules-on-and-off)
+- [LED ring](#led-ring)
+- [Home Assistant](#home-assistant)
+- [MQTT topics](#mqtt-topics)
+- [System: updates, time and storage](#system-updates-time-and-storage)
+- [JSON API](#json-api)
+- [Hardware and wiring](#hardware-and-wiring)
+- [First time installation](#first-time-installation)
+- [Updating an existing device](#updating-an-existing-device)
+- [Building from source](#building-from-source)
+- [Credits](#credits)
 
-> **About this fork**
-> This fork of [frickelzeugs/FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) is version **2.0 "Grrzzz"**. It adds a completely redesigned web interface, **Home Assistant MQTT auto discovery**, configurable LED colors and animations, a small JSON API and a few quality-of-life improvements. Everything is documented below, with screenshots.
-
-<img src="doc/images/ui-overview.png" width="700">
-
-## What's new in this fork
-
-- [New web interface](#1-new-web-interface)
-- [Home Assistant MQTT auto discovery](#2-home-assistant-mqtt-auto-discovery)
-- [LED ring: configurable colors, animations and a clear priority](#3-led-ring-configurable-colors-animations-and-priorities)
-- [MQTT: host:port, availability, status topics, remote reboot](#4-mqtt-improvements)
-- [JSON API](#5-json-api)
-- [Upgrade notes](#upgrade-notes)
-
-### 1. New web interface
-The old Bootstrap form pages (which needed an internet connection for their stylesheet) were replaced by a small single page application served from the ESP32 itself. It has no external dependencies, follows the light/dark mode of your device and works on phones.
+## What is new in this fork
 
 | | |
 | --- | --- |
-| **Overview** shows the live state of the doorbell: a sensor disc that mirrors the real LED ring (color and animation), status chips (sensor, MQTT, Home Assistant, pairing), quick switches for "Ignore touch ring" and "Hardware gong", uptime, Wi-Fi signal, IP address, free memory, the last event and a scrollable activity log. | <img src="doc/images/ui-overview.png" width="420"> |
-| **Fingerprints** are shown as cards with rename and delete actions. | <img src="doc/images/ui-fingerprints.png" width="420"> |
-| **Add fingerprint** suggests the first free memory slot and shows the progress of the enrollment live. | <img src="doc/images/ui-enroll.png" width="420"> |
-| **LED & Ring**: pick colors with a click, changes are applied instantly (no restart) and are also published to Home Assistant. The hardware gong (enable/disable and ring duration) is configured here as well. | <img src="doc/images/ui-led.png" width="420"> |
-| **Connectivity**: MQTT broker (`host` or `host:port`), credentials, root topic, NTP server and the Home Assistant discovery settings. A save bar appears when something was changed; saving restarts the device and the page reconnects automatically. | <img src="doc/images/ui-connectivity.png" width="420"> |
-| **System**: firmware updater, sensor pairing, restart, delete all fingerprints and factory reset (all destructive actions ask for confirmation). | <img src="doc/images/ui-system.png" width="420"> |
-| **Responsive**: on small screens the navigation moves to the bottom. | <img src="doc/images/ui-mobile.png" width="220"> |
+| **New web interface** | Single page app served by the ESP32, no internet needed, light and dark mode, works on phones. |
+| **Home Assistant auto discovery** | One device with all entities, LED settings and a gong button included. |
+| **Fingerprint schedules** | Switch fingerprints on and off, or let up to four weekly time windows per fingerprint decide. |
+| **Disabled fingerprints are visible** | A switched off finger rings like an unknown finger and is reported as a "disabled match" to MQTT and Home Assistant. |
+| **Configurable LED ring** | Color and animation for ready, finger detected, match, touch ring ignored and gong disabled. |
+| **One-click update** | The device downloads firmware and web interface from the GitHub release itself. |
+| **Storage meter** | Shows what the flash area for names, schedules and settings holds. |
+| **Smaller firmware** | 181 KB saved by removing unused code, leaving room for the new features. |
 
-Screenshots show the real device; fingerprint names, IP addresses and MQTT credentials are blurred or replaced by placeholders.
+## Web interface
 
-### 2. Home Assistant MQTT auto discovery
-FingerprintDoorbell now announces itself to Home Assistant. No more hand written MQTT YAML: the device shows up as **one device** with all of its entities, including firmware version and a link to the web interface.
+The Overview page mirrors the real LED ring, shows the state of sensor, MQTT, Home Assistant and pairing, has quick switches for "Ignore touch ring" and the hardware gong and keeps a scrollable activity log. On small screens the navigation moves to the bottom, and the theme can be set to auto, light or dark in the sidebar.
+
+| Dark mode | Phone |
+| --- | --- |
+| <img src="doc/images/ui-dark.png" width="520"> | <img src="doc/images/ui-mobile.png" width="220"> |
+
+## Fingerprints: names, schedules, on and off
+
+<img src="doc/images/ui-fingerprints.png" width="760">
+
+Every fingerprint is a card with its memory slot, a switch, and buttons for the schedule, renaming and deleting. The quicksearch above the cards finds fingerprints by name, finger, action, slot (`#12`) or state (`disabled`, `inactive`, `scheduled`). The line below the title shows how many slots are used, how many fingerprints are switched off by hand and how many have a schedule.
+
+### Naming: name, finger and action
+
+Names are free text (up to 48 bytes). If a name follows the pattern
+
+```
+<name> (<finger>) #<action>
+```
+
+for example `Alice (Thumb right) #Front door`, the card shows the name in bold, the finger in italics and the action as a colored badge. The action also colors the stripe at the left edge of the card.
+
+| Action | Color |
+| --- | --- |
+| `Haustür`, `Front door` | blue |
+| `Garage` | orange |
+| `Reinigung`, `Cleaning` | green |
+| anything else | grey |
+
+Names that do not match the pattern are shown as they are. This is only a display convention, the full name is what is published to MQTT.
+
+### Switching fingerprints on and off
+
+The switch on a card turns a fingerprint off, for example while somebody is on holiday. A fingerprint that is off behaves like an unknown finger: the bell rings, but no match is reported and nothing is opened. The log notes it ("Disabled fingerprint detected: #8 ...") and Home Assistant receives the [Disabled Match](#home-assistant) sensor so you can react to it.
+
+### Schedules
+
+<img src="doc/images/ui-fingerprint-schedule.png" width="560">
+
+The **Schedule** button opens the editor. A schedule consists of up to four time windows. Each window has its own weekdays, a start and an end time (or "All day"), and the week overview below shows when the fingerprint is active, with a red marker for the current time of the device. A window that ends before it starts continues after midnight and belongs to the day it starts on.
+
+- With a schedule, **the schedule alone decides**. The switch on the card is then locked and only shows the current state.
+- Without a valid device time (no NTP), a fingerprint with a schedule stays inactive. Time and time zone are configured under [System](#system-updates-time-and-storage).
+- A clock icon at the top of a card shows the schedule state (green: active now, orange: inactive now, red crossed circle: switched off). Hovering it shows the week overview.
+
+| Week overview on hover | Time picker |
+| --- | --- |
+| <img src="doc/images/ui-fingerprint-hover.png" width="420"> | <img src="doc/images/ui-fingerprint-picker.png" width="420"> |
+
+### Enrolling a fingerprint
+
+**Add fingerprint** suggests the first free slot, asks for a name and guides you through the scans. The sensor wants five placements; do not vary the position too much, otherwise the scans cannot be combined. Closing the dialog cancels the enrollment on the device.
+
+<img src="doc/images/ui-enroll.png" width="560">
+
+## LED ring
+
+<img src="doc/images/ui-led.png" width="620">
+
+Color and animation of five states can be changed at any time, the change is applied instantly and also published to Home Assistant.
+
+| State | Default | When |
+| --- | --- | --- |
+| Ready | white, on | idle, touch ring active |
+| Finger detected | white, breathing | a finger is on the sensor |
+| Match | green, on | a fingerprint was recognized |
+| Touch ring ignored | cyan, on | "Ignore touch ring" is switched on |
+| Gong disabled | red, on | the hardware gong is switched off |
+
+If several states apply the ring shows the one with the highest priority: **gong disabled** over **touch ring ignored** over **ready**. Colors 4 to 7 (green, yellow, cyan, white) need a newer R503 sensor, older ones can only show red, blue and purple. Fixed states of the original firmware stay as they were: red/on is an error, red/breathing is Wi-Fi configuration, purple while enrolling.
+
+## Home Assistant
+
+The device announces itself through MQTT auto discovery as **one device with all its entities**, including firmware version and a link to the web interface.
 
 <img src="doc/images/ha-device.png" width="800">
 
-| Entity | Type | MQTT topic (below the root topic) | Description |
-| --- | --- | --- | --- |
-| Ring | binary sensor | `ring` | `on` when somebody rings (unknown finger) |
-| Match | sensor | `matchName` | name of the recognized finger |
-| Confidence | sensor | `matchConfidence` | recognition confidence |
-| Match ID | sensor | `matchId` | memory slot of the recognized finger |
-| Ignore Touch | switch | `ignoreTouchRing` | ignore the touch ring (e.g. in rain) |
-| Ring Enabled | switch | `ringEnabled` | enable/disable the hardware gong |
-| Touch Ring Color / Touch Ring Sequence | select | `touchRingColor`, `touchRingSequence` (+ `/set`) | LED color and animation when ready |
-| Finger Detected Color | select | `scanColor` (+ `/set`) | LED color while a finger is on the sensor |
-| Match Color | select | `matchColor` (+ `/set`) | LED color on a match |
-| Reboot | button | `reboot` (payload `press`) | restarts the device |
-| IP Address, WiFi Signal, Uptime | diagnostic sensors | `ipAddress`, `wifiRssi`, `uptime` | updated every 60 s |
-| Free Heap | diagnostic sensor (disabled by default) | `freeHeap` | free memory |
-| Sensor Connected | diagnostic binary sensor | `sensorConnected` | fingerprint sensor reachable |
+| Entity | Type | Description |
+| --- | --- | --- |
+| Ring | binary sensor | `on` when somebody rings (unknown finger) |
+| Match, Confidence, Match ID | sensors | name, confidence and slot of the recognized finger |
+| Disabled Match | sensor | name of a recognized finger that is switched off or outside its schedule. Attributes: `id`, `name`, `reason`, `confidence`, `time`. Triggers on every detection |
+| Ignore Touch, Ring Enabled | switches | ignore the touch ring, enable the hardware gong |
+| Ring Gong | button | rings the mechanical gong, even if the automatic gong is disabled |
+| Reboot | button | restarts the device |
+| LED selects (10) | selects | color and animation of the five LED states |
+| IP Address, WiFi Signal, Uptime, Sensor Connected | diagnostic | refreshed every 60 s |
+| Free Heap | diagnostic | free memory, disabled by default |
 
 How it works:
-- Discovery configs are published retained to `<prefix>/<component>/fingerprintdoorbell_<mac>/<entity>/config`. The unique id is derived from the MAC address and therefore stays the same if you rename the device.
-- All entities use the availability topic `<rootTopic>/connection` (`online` / `offline`). `offline` is the MQTT last will, so Home Assistant marks everything as unavailable when the device disappears.
-- The device republishes everything when Home Assistant restarts (it listens to `<prefix>/status`).
-- State topics are retained, so entities have a value right after (re)discovery.
-- Settings (Connectivity page): switch discovery on/off and set the discovery prefix (default `homeassistant`). Disabling discovery removes the entities from Home Assistant again.
-- The three LED selects change the same settings as the web interface, they are saved on the device and applied immediately.
 
-### 3. LED ring: configurable colors, animations and priorities
-Colors and animations are no longer hard coded. The idea and the R503 color handling come from [PR #26](https://github.com/frickelzeugs/FingerprintDoorbell/pull/26) by TheMaskedDeveloper; it was merged here, extended with live updates, Home Assistant entities and an input validation, and an unsafe pointer in the MQTT `host:port` parsing was fixed.
+- Configs are published retained to `<prefix>/<component>/fingerprintdoorbell_<mac>/<entity>/config`. The unique id is derived from the MAC address and survives renaming.
+- All entities use the availability topic `<rootTopic>/connection` (`online`, `offline` as last will).
+- Everything is republished when Home Assistant restarts. State topics are retained, so values are there right after (re)discovery.
+- Discovery can be switched off (the entities are removed again) and the discovery prefix can be changed under **Connectivity**.
 
-| State | Default | Configurable |
-| --- | --- | --- |
-| Ready (touch ring active) | white, on | color and animation (off / on / breathing / blinking) |
-| Finger detected | white, breathing | color |
-| Match | green | color |
-| Touch ring ignored | cyan, on | no |
-| Hardware gong disabled | red, on | no |
+Typical automations use the Ring binary sensor for the bell, the Match sensor to open a door (react to the `#Garage` or `#Front door` part of the name) and the Disabled Match sensor for notifications.
 
-If several states apply, the ring shows the one with the highest priority: **gong disabled** (red, on) > **ignore touch ring** (cyan, on) > **configured colors**. The dashboard preview follows the same rules. Colors 4-7 (green, yellow, cyan, white) are only supported by newer versions of the R503 sensor, older ones can only show red, blue and purple.
+## MQTT topics
 
-### 4. MQTT improvements
-- The broker can be entered as `host` or `host:port` (default port 1883).
-- New topics (below the root topic):
+Below the root topic (default `fingerprintDoorbell`, configurable). The broker can be entered as `host` or `host:port`.
 
 | Topic | Direction | Values |
 | --- | --- | --- |
+| `ring` | publish | `on` on a ring event, then `off` |
+| `matchId`, `matchName`, `matchConfidence` | publish | the recognized fingerprint, `-1` / empty when idle |
+| `disabledMatchName`, `disabledMatchInfo` | publish | a recognized but switched off fingerprint; info is JSON (`id`, `name`, `reason`, `confidence`, `time`); not retained |
 | `connection` | publish, retained | `online` / `offline` (last will) |
-| `uptime`, `wifiRssi`, `ipAddress`, `freeHeap`, `sensorConnected` | publish, retained | device status, refreshed every 60 s |
-| `touchRingColor`, `touchRingSequence`, `scanColor`, `matchColor` | publish, retained | current LED settings (`Red`, `Blue`, `Purple`, `Green`, `Yellow`, `Cyan`, `White`; sequences `Breathing`, `Flashing`, `On`, `Off`) |
-| `<setting>/set`, e.g. `touchRingColor/set` | subscribe | change an LED setting |
-| `ringEnabled` | publish retained / subscribe | `on` / `off`, also published when changed in the web interface |
-| `ignoreTouchRing` | publish retained / subscribe | `on` / `off`, also published when changed in the web interface |
+| `uptime`, `wifiRssi`, `ipAddress`, `freeHeap`, `sensorConnected` | publish, retained | device status |
+| `ignoreTouchRing`, `ringEnabled` | publish retained and subscribe | `on` / `off`, also published when changed in the web interface |
+| `touchRingColor`, `touchRingSequence`, `scanColor`, `scanSequence`, `matchColor`, `matchSequence`, `ignoreColor`, `ignoreSequence`, `gongOffColor`, `gongOffSequence` | publish retained | current LED settings (`Red`, `Blue`, `Purple`, `Green`, `Yellow`, `Cyan`, `White`; `Breathing`, `Flashing`, `On`, `Off`) |
+| `<led setting>/set` | subscribe | change an LED setting |
+| `gong` | subscribe | payload `press` rings the gong |
 | `reboot` | subscribe | payload `press` restarts the device |
 
-- The **last will** of the MQTT connection is now `<rootTopic>/connection` = `offline` (retained). Before, it was a text message on `lastLogMessage`.
-- The default ring duration of the hardware gong is now **275 ms** (already stored values are kept).
+### What is "Ignore touch ring"?
 
-### 5. JSON API
-The web interface uses a small read/write JSON API that you can also use from scripts:
+The sensor reacts to a touch of the metal ring around it, which makes it very sensitive for visitors who just want to ring the bell. Rain drops can trigger the capacitive ring as well, and nobody wants the storm to ring the bell at 3 AM. Set `ignoreTouchRing` to `on` (for example from a rain sensor) to ignore the ring and only evaluate the sensor surface. The LED ring shows the state with the "touch ring ignored" color.
+
+## System: updates, time and storage
+
+<img src="doc/images/ui-system.png" width="760">
+
+- **Firmware**: shows the version and checks the latest release on GitHub (the browser asks GitHub, the device needs no internet access for that). If a newer release exists, **Update now** lets the device download and install it itself (see [Updating](#updating-an-existing-device)).
+- **Storage**: stacked bar of the flash area that holds fingerprint names, schedules and settings (fingerprints, settings, system and other, free, reserved) with an estimate how many fingerprints still fit.
+- **Time**: NTP server and time zone (default Europe/Berlin). Timestamps and schedules use it.
+- **Hardware gong**: duration of the signal on the output pin (default 275 ms). The gong itself is switched on the Overview page.
+- **Danger zone**: pairing a new sensor, deleting all fingerprints, factory reset.
+
+Settings on the **System** and **Connectivity** pages share one save bar: when something changed it appears at the bottom with *Discard* and *Save*. Changes that need a restart (broker, NTP, time zone) say *Save & restart*, the gong duration applies immediately.
+
+### Pairing
+
+For security the ESP32 and the sensor are paired. If the sensor is replaced, the pairing is marked as broken and no match events are sent any more, but the doorbell function keeps working. If you replaced the sensor yourself, use **Pair new sensor**.
+
+## JSON API
+
+The web interface uses a small API that you can use from scripts. There is no authentication, run the device in a trusted network only.
 
 | Endpoint | Description |
 | --- | --- |
-| `GET /api/status` | hostname, version, uptime, Wi-Fi, IP, memory, mode, sensor/MQTT/pairing state, switches, last event and the log |
-| `GET /api/fingerprints` | `[{"id":1,"name":"..."}, ...]` |
-| `GET /api/settings` | all settings (including the MQTT password, like the old settings page) |
-| `GET /api/led?setting=<touchRingColor\|touchRingSequence\|scanColor\|matchColor>&value=<n>` | change an LED setting instantly (colors 1-7: red, blue, purple, green, yellow, cyan, white; sequence 1-4: breathing, flashing, on, off) |
+| `GET /api/status` | hostname, version, uptime, Wi-Fi, IP, memory, mode, sensor/MQTT/pairing state, switches, last event, device clock, update state, log |
+| `GET /api/fingerprints` | fingerprints with name, switch, schedule windows and whether they are active right now |
+| `GET /api/settings` | all settings (includes the MQTT password) |
+| `GET /api/led?setting=<name>&value=<n>` | change an LED setting (colors 1-7: red, blue, purple, green, yellow, cyan, white; animation 1-4: breathing, flashing, on, off) |
 | `GET /api/control?ignoreTouchRing=on\|off&ringEnabled=on\|off` | switch without restart |
+| `GET /api/finger/policy?id=1&enabled=0&scheduled=1&w=31,480,720,0;96,0,0,1` | switch a fingerprint or set its schedule; `w` holds up to four windows `days,from,to,allDay` (days: bit 0 = Monday, times in minutes) |
+| `GET /api/storage` | usage of the settings flash area |
+| `GET /api/enroll/cancel` | cancel a running enrollment |
+| `GET /api/selfupdate/start?tag=v2.1` | start the one-click update to a release of this fork |
 
-There is no authentication, as before: operate the device in a trusted network only.
+## Hardware and wiring
 
-### Upgrade notes
-- **Flash both images.** The web interface lives in the filesystem. When updating over the air (`/update`) upload `firmware.bin` *and* `spiffs.bin` (Filesystem). The old `index.html`, `settings.html` and `bootstrap.min.css` are gone, the new files are `app.html`, `app.js` and `style.css`.
-- Your settings (Wi-Fi, MQTT, fingerprints, pairing) are stored separately and survive the update.
-- **Home Assistant:** if you used hand written MQTT entities before, remove them after switching to discovery, otherwise you have every entity twice. The ring is now a `binary_sensor` (it was a `sensor` with the states `on`/`off`). Automations that triggered on the MQTT topic `<root>/ring` keep working, but a state trigger on the new `binary_sensor.<name>_ring` is the cleaner way.
-- If the build reports that `me-no-dev/ESP Async WebServer` cannot be found in the PlatformIO registry, install the libraries from `lib_deps` manually into `lib/` (the firmware was built that way).
+You need
 
----
+- a fingerprint reader **Grow R503** (e.g. [AliExpress](https://de.aliexpress.com/i/33053783539.html))
+- an **ESP32** microcontroller. The mini version is nice because of its size ([example](https://de.aliexpress.com/item/1005001621844145.html)), any dealer you trust will do.
 
-## How does it work?
-If you put your finger on the sensor the system looks for a matching fingerprint. If it doesn't find one, it rings the bell (MQTT message is published and an GPIO pin is set to high). If a match was found, the matching finger ID together with a name and confidence will be published as MQTT messagage. In combination with a home automation solution (like OpenHAB, ioBroker, Home Assistant...) you can then trigger your door opener or smart lock. You can also define actions depending on the finger that was detected, like left thumb opens front door, right thumb opens garage, middle finger...
+### Wiring
 
-  
+<img src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/wiring.png">
 
-## What do I need?
-- fingerprint reader Grow R503 (available at https://de.aliexpress.com/i/33053783539.html)
-- an ESP32 microcontroller (I would prefer the mini-version, because of it's compact size, e.g. available here https://de.aliexpress.com/item/1005001621844145.html or from any other dealer of your trust)
+I would not solder the cables directly to the ESP32 but use a connector between ESP32 and sensor. Otherwise the cables must first be fed through the 25mm hole for the sensor and then soldered on, and replacing the sensor will be a pain. The original plug on the sensor is a 6-pin Micro JST SH 1.00mm, but any other 6-pin connector will do if you replace both sides.
 
-# How to build the hardware
-## Wiring
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/wiring.png"  >
+Just as an inspiration:
 
-I would not solder the cables directly to the ESP32 but recommend using a connector between ESP32 and Sensor. Otherwise, the cables must first be fed through the 25mm hole for the sensor and then soldered on. Replacing the Sensor will be a pain then. The original plug used on the sensor is a 6-pin Micro JST SH 1.00mm but it'll be fine to use any other 6-pin connector that you have on hand if you replace both sides.
+<img src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/esp32-shield.jpg" width="300">
 
-Just as an inpiration:
+The author of the original project made a small shield board for the ESP32 mini with a 6-pin Micro JST SH 1.00mm socket, a DC-DC step down converter and screw terminals for the power supply (24 V DC in his case). Sensor and ESP32 can then be replaced without a soldering iron.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/esp32-shield.jpg"  width="300">
+**Caution:** do not forget to ground the sensor housing. Otherwise electrostatic charge can lead to unexpected restarts or even damage the ESP32.
 
-I made a small shield board for the ESP32 mini that contains a 6 pin Micro JST SH 1.00mm socket, a DC-DC step down converter and some screw terminals for the power supply (in my case 24V DC). So I'm now able to easily replace the sensor or ESP32 without touching my soldering iron.
+## First time installation
 
-Caution: Please do not forget to ground the sensor housing. Otherwise it can lead to unexpected restarts or even damages the ESP32 if you are electrostatically charged. I had occasional restarts when touching the sensor after I was electrostatically charged from the floor mats in the car.
+### Flash the firmware
 
-# Flashing the firmware
-## Method 1 (recommended!):
-This is the absolute preferred method over method 2, which was the standard method in the past. Thanks to the great work of the [ESP Web Tools](https://esphome.github.io/esp-web-tools/) project, flashing your ESP is now as easy as pie. All you need to do is connect your ESP32 module via USB and simply flash FingerprintDoorbell via your browser (Chrome, Edge or Opera required):
+#### Method 1: browser flasher plus update (recommended)
 
-### --> [FingerprintDoorbell Flasher](https://frickelzeugs.github.io/FingerprintDoorbell-flasher/)
+The [FingerprintDoorbell Flasher](https://frickelzeugs.github.io/FingerprintDoorbell-flasher/) of the original project flashes the ESP32 from your browser (Chrome, Edge or Opera required). It installs the original firmware, this fork is compatible with it. Do the [Wi-Fi setup](#wi-fi-setup) below and then update to this fork over the air as described in [Updating](#updating-an-existing-device).
 
+#### Method 2: precompiled binaries with esptool
 
-## Method 2: use precompiled binaries
-To flash the ESP32 with the precompiled binaries you can use the python based esptool from espressif. You'll need a running Python environment on your system, so get Python first here if you don't already have it: [Python download](https://www.python.org/downloads/)
+Install Python and the flash tool:
 
-After python is available run the following command in your shell/cmd to install esptool:
 ```
 pip install esptool
 ```
-If there is a `command not found: pip` error but you have installed Python try to use pip3 insted of pip.
-```
-pip3 install esptool
-```
 
-
-
-
-Now esptool should be available in your shell/cmd. Check it by running:
-```
-esptool.py
-```
-
-Now that esptool.py is available you can continue to flash the firmware. To start you will need 5 files:
-
-- bootloader_dio_40m.bin
-- boot_app0.bin
-- partitions.bin
-
-download [here](https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/bootloader.zip)
-
-- firmware.bin
-- spiffs.bin
-
-contained in the [Release packages](https://github.com/frickelzeugs/FingerprintDoorbell/releases)
-
-### Flashing
-Copy all 5 files in a local folder, open your command line/shell, navigate to this folder and execute:
+You need five files: `bootloader_dio_40m.bin`, `boot_app0.bin` and `partitions.bin` from [bootloader.zip](https://raw.githubusercontent.com/Grrzzz/FingerprintDoorbell/master/doc/bootloader.zip), and `firmware.bin` and `spiffs.bin` from the [latest release](https://github.com/Grrzzz/FingerprintDoorbell/releases/latest). Put them into one folder and run:
 
 ```
 esptool.py --chip esp32 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0x1000 bootloader_dio_40m.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin 2686976 spiffs.bin
 ```
 
-If everything has worked your output should look something like this:
+The LED ring should now breathe slowly red: the device waits for its Wi-Fi configuration.
 
-```
-esptool.py v3.2
-Found 2 serial ports
-Serial port COM4
-Connecting....
-Chip is ESP32-D0WDQ6 (revision 1)
-Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
-Crystal is 40MHz
-MAC: 9c:9c:1f:c7:ac:a0
-Uploading stub...
-Running stub...
-Stub running...
-Changing baud rate to 460800
-Changed.
-Configuring flash size...
-Auto-detected Flash size: 4MB
-Flash will be erased from 0x00001000 to 0x00005fff...
-Flash will be erased from 0x00008000 to 0x00008fff...
-Flash will be erased from 0x0000e000 to 0x0000ffff...
-Flash will be erased from 0x00010000 to 0x00121fff...
-Flash will be erased from 0x00290000 to 0x003fffff...
-Compressed 17104 bytes to 11191...
-Wrote 17104 bytes (11191 compressed) at 0x00001000 in 0.6 seconds (effective 225.1 kbit/s)...
-Hash of data verified.
-Compressed 3072 bytes to 128...
-Wrote 3072 bytes (128 compressed) at 0x00008000 in 0.1 seconds (effective 300.7 kbit/s)...
-Hash of data verified.
-Compressed 8192 bytes to 47...
-Wrote 8192 bytes (47 compressed) at 0x0000e000 in 0.1 seconds (effective 463.9 kbit/s)...
-Hash of data verified.
-Compressed 1119504 bytes to 666873...
-Wrote 1119504 bytes (666873 compressed) at 0x00010000 in 16.1 seconds (effective 555.0 kbit/s)...
-Hash of data verified.
-Compressed 1507328 bytes to 36014...
-Wrote 1507328 bytes (36014 compressed) at 0x00290000 in 7.5 seconds (effective 1599.3 kbit/s)...
-Hash of data verified.
+#### Method 3: build and flash with PlatformIO
 
-Leaving...
-Hard resetting via RTS pin...
-```
+See [Building from source](#building-from-source).
 
-Your device should now boot up and the LED ring should start flashing slowly red ("breathing") to signal that it's currently in WiFi Config mode. Proceed with the configuration of the device.
+### Wi-Fi setup
 
-## Method 3: build and flash with Visual Studio Code and PlattformIO
-If you want to build the firmware on your own (e.g. if you want to modify the code or you don't trust binaries) please follow the instructions below. I don't want to go into details here and assume that you already have experience with IDEs or using Git repos:
-* Download and install [Visual Studio Code and PlattformIO Extension](https://platformio.org/platformio-ide).
-* Install [Git](https://git-scm.com/downloads) if you don't have already
-* Clone this GitHub repo and open the project workspace in VS Code (you can do this in one step from within VS Code)
-* Open the PlatformIO extension from the left sided toolbar and from the "Project Tasks" tree choose
-  * esp32doit-devkit-v1 -> General -> Build (creates firmware.bin)
-  * esp32doit-devkit-v1 -> Platform -> Build Filesystem Image (creates spiffs.bin containing HTML and CSS files)
-* if the build finishes successfully you can start uploading to your ESP32 by using the following tasks
-  * esp32doit-devkit-v1 -> General -> Upload
-  * esp32doit-devkit-v1 -> Platform -> Upload Filesystem Image
+With no Wi-Fi configured (a fresh install) the device starts in configuration mode and the LED ring breathes red. It opens its own network **FingerprintDoorbell-Config**, password `12345678`. Connect with a PC or phone, a captive portal should open the setup page. If not, browse to `http://192.168.4.1`.
 
-# Configuration
-## WiFi Connection
-If no WiFi settings are configured (e.g. on a fresh install) the device will automatically boot into WiFi configuration mode (LED ring is breathing red). Once your WiFi connection is configured the device will never enter WiFi config mode again, even if the WiFi is not available or it cannot connect because of errors. If you later want to enter WiFi configuration mode again you have to press and hold your finger at least 10s on the sensor while powering on the device (or trigger a reboot through WebUI). 
+<img src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-wificonfig.png" width="300">
 
-When in WiFi config mode FingerprintDoorbell will act as an AccessPoint an creates it's own Network with the Name "FingerprintDoorbell-Config". Connect to this network with your PC/Mobile and Password "12345678". You should then get a "captive portal" notification, which you should bring you to the browser with the WiFi config already open. If the captive portal thing does not work please open a browser manually and visit "http://192.168.4.1".
+Enter your Wi-Fi and click **Save and restart**. The LED ring flashes blue while booting and then shows the ready color (white by default) once the connection works. The web interface is then reachable at `http://fingerprintdoorbell` (if you kept the default hostname). Once Wi-Fi is configured the device never enters configuration mode again, even without Wi-Fi. To get it back, hold a finger on the sensor for at least 10 seconds while powering on, or use the factory reset.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-wificonfig.png"  width="300">
+After that open **Connectivity** to enter your MQTT broker and start enrolling fingerprints.
 
-Enter your settings and click "Save and restart" to bring the device back to normal operation mode. If everything had worked the LED ring should first flash blue while bootup and starts breathing blue if connection to your WiFi is running. When connected to your WiFi the WebUI of Fingerprintdoorbell should be available under http://fingerprintdoorbell (if you used the default hostname in WiFi configuration). Now you can start enrolling ("teaching") your fingerprints.
+## Updating an existing device
 
-## Managing fingerprints
-The sensor has the capacity for storing up to 200 fingerprints. Theses memory slots are used as ID together with a name to increase human readability. To enroll new fingerprints enter a ID and name (optional) in the "Add/Replace fingerprint" section and click "Start enrollment". Now the system asks you to place and lift your finger to the sensor for 5 times. The 5 passes of scanning helps the sensor to improve its recognition rate. Don't try to vary your placing/position too much, because the enrollment process may fail if the 5 preceeding scans differ too much from each other and cannot be combined to one fingerprint template.
+**From 2.1 on: one click.** When the Firmware card on the System page reports a newer release, click **Update now**. The device checks both release files, installs the web interface, installs the firmware and restarts; a progress bar shows the steps. If something fails, the update stops with an error message and you can simply start it again.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-manage.png"  width="300">
+**From older versions, or manually (over the air):**
 
-If enrollment has completed successfull you can now test if your fingerprint matches.
+1. Download `firmware.bin` and `spiffs.bin` from the [release](https://github.com/Grrzzz/FingerprintDoorbell/releases/latest).
+2. Open `http://<device>/update` (System, *Open updater*).
+3. Select **Firmware**, upload `firmware.bin` and wait for the restart.
+4. The page may look broken for a moment, the new firmware still has the old web interface. Open `/update` again, select **Filesystem**, upload `spiffs.bin`.
+5. Reload the page with Ctrl+F5.
 
-## Configure MQTT connection
-Matching fingerprints (and also ring events) are published as messages to your MQTT broker at certain topics. For this you will have to configure your MQTT Broker settings in FingerprintDoorbell. If your broker does not need authentification by username and password just leave this fields empty. You can also specify a custom root topic under which FingerprintDoorbell publishes its messages or leave the default "fingerprintDoorbell" if you're fine with that.
+Your Wi-Fi, MQTT settings, fingerprints and sensor pairing are kept, also when coming from the official version.
 
-<img  src="https://raw.githubusercontent.com/frickelzeugs/FingerprintDoorbell/master/doc/images/web-settings.png"  width="300">
+> **Note on 2.1:** names and schedules of the fingerprints are moved to a more compact storage format the first time 2.1 starts. This is automatic and keeps all data. Older firmware versions cannot read the new format, so after going back to 2.0.x or the official release the fingerprints are still on the sensor but their names are missing. Update again to get them back.
 
-| MQTT Topic                           | Action    | Values | 
-| ------------------------------------ | --------- | -------- |
-| fingerprintDoorbell/ring             | publish   | "off" by default, on a ring event switching to "on" for 1s |
-| fingerprintDoorbell/matchId          | publish   | "-1" by default, if a match was found the value holds the matching id (e.g. "27") for 3s |
-| fingerprintDoorbell/matchName        | publish   | "" by default, if a match was found the value holds the matching name for 3s |
-| fingerprintDoorbell/matchConfidence  | publish   | "" by default, if a match was found the value holds the conficence (number between "1" and "400", 1=low, 400=very high) for 3s |
-| fingerprintDoorbell/ignoreTouchRing  | subscribe | read by FingerprintDoorbell and enables/disables the touch ring (see FAQ below for details) |
+## Building from source
 
-## Advanced Actions
-### Firmware Update
-If you've managed to walk the bumpy path of flashing the firmware on the ESP32 for the first time, dont't worry: every further firmware update will be a piece of cake. FingerprintDoorbell is using the really cool Library [AsyncElegantOTA](https://github.com/ayushsharma82/AsyncElegantOTA) to make this as handy as possible. You don't even have to pull the microcontroller out of the wall and connect it to your computer, because the "OTA" in "AsyncElegantOTA" is for "Over-the-air" updates. All you need to do is to browse to the settings page of the WebUI and hit "Firmware update". In the following Dialog you have to upload 2 files
+Install [Visual Studio Code with the PlatformIO extension](https://platformio.org/platformio-ide), clone the repository and open it. In the PlatformIO tasks of `esp32doit-devkit-v1` choose **Build** (creates `firmware.bin`) and **Build Filesystem Image** (creates `spiffs.bin` with the web interface), then **Upload** and **Upload Filesystem Image**.
 
-- firmware.bin for the "Firmware" radio button
-- spiffs.bin for the "Filesystem" radio button
+Two notes:
 
-Done. Reboot your system to get the new firmware live.
+- The registry no longer resolves `me-no-dev/ESP Async WebServer`. Install the libraries from `lib_deps` manually into `lib/`.
+- The firmware only fits next to the one-click update if the library does not pull in `std::regex`. Apply [`lib_patches/ESPAsyncWebServer-no-regex.patch`](lib_patches/ESPAsyncWebServer-no-regex.patch) to the library (`git apply` in `lib/ESP Async WebServer`). It makes the regex support of URL handlers optional (not used by this firmware) and saves about 180 KB.
 
-### Pairing a new Sensor
-For security reasons the ESP32 and Sensor will be coupled together, so if the sensor is replaced (e.g. an attackers connects his own sensor to the ESP32 with his fingerprints on it) this will be detected. In this case the pairing will be marked as broken and no further match events are sent by MQTT from now on (even if you connect the old sensor again). But keep calm, the doorbell function will still continue to work and ring events are sent by MQTT so you don't miss your long awaited package delivery. You'll see an error message in the log window that requests you to renew the pairing. If the sensor replacement was done by yourself or no attack took place please choose the option "Pairing a new Sensor" to pair the sensor with the ESP32.
+## Credits
 
-### Factory Reset
-As the name already says this will delete all your settings and fingerprints from the device. You'll have a blank device in WiFi Config mode when choosing this option. Be careful!
-
-# FAQ
-## What does the different colors/blinking styles of the LED ring mean?
-In this fork the colors of the ready, finger-detected and match states are configurable and have different defaults, see [LED ring](#3-led-ring-configurable-colors-animations-and-priorities). The table below shows the original behavior of upstream.
-
-|LED ring color| sequence | Meaning | 
-| -------- | -------- | -------- |
-| red | permanent | System is in error state |
-| red | breathing | System in WiFi config mode |
-| red | flashing  | Finger on sensor detected (no match found yet) |
-| blue | permanent | System ready (touch ring ignored) |
-| blue | breathing | System ready (touch ring active) |
-| blue | flashing | System startup (not ready yet) |
-| purple | solid | Fingerprint match found or when in enrollment mode this means pass is finished, lift your finger |
-| purple | flashing | Enrollment active (waiting for finger) |
-
-## What is the MQTT topic "fingerprintDoorbell/ignoreTouchRing" for and how to use it?
-If your sensor is mounted in a dry environment and cannot be hit by rain you can skip this section. Otherwise please read further. The sensor consists mainly of two parts: the black sensor surface and a metal ring divided by the led ring around the sensor surface. The sensor surface will only recognize a finger touch if the larger part of the finger was on the sensor and not only a small tip. Also only short touches are not recognizes, because no image could be captured in this short timespan. Because a visitor who just wants to ring the bell doesn't pay particular attention to putting his finger completely on the sensor, I do not only evaluate the image sensor itself, but also consider the finger detection signal (pin 5) the sensor is providing. This signal is already triggered if you slightly touch the sensor and even if you only touch the metal ring and not yet the sensor surface. 
-
-This ring is a capacitive touch sensor that works similar to the touch display of your smartphone. And if you may know touch displays and rain drops are not best friends, because they can lead to false inputs. This will usually be a problem if your sensor is mounted in a place exposed to rain and even if it's mounted under the roof overhang it may be hit by horizontal rain during a storm and causing false ring events. And believe me: your wife will not be happy if the storm rings on your door at 3 AM ;-)
-
-So after this experience I could have added an option to disable this ring permanent in the settings but I decided to go another way and make this option conditional. Why? Because in >95% of the cases I really want this high sensitivity of the sensor, just not on stormy and rainy days. Fortunately I already had the current weather conditions available in my smart home via a rain sensor. So I added the MQTT topic "fingerprintDoorbell/ignoreTouchRing" which can be set to "on" or "off". In my case OpenHAB sets this value to "on" when it's raining and wind speed is over a certain level. Since then I have had no more problems with disturbing the peace at night.
+This project is based on [FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) by frickelzeugs. Thanks to TheMaskedDeveloper for the idea and the R503 color handling of [PR #26](https://github.com/frickelzeugs/FingerprintDoorbell/pull/26), which was merged into this fork. The web interface of the official firmware uses [AsyncElegantOTA](https://github.com/ayushsharma82/AsyncElegantOTA) for the manual updater. Screenshots in this README were created from a virtual device with made-up data.
