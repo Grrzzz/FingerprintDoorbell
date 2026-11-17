@@ -456,6 +456,11 @@ h3 {
   border-bottom: none;
 }
 
+/* Doorbell: same title and first card position as the overview (its sync bar takes 3px + 8px) */
+.container:not(.dash) > .container-header {
+  padding: 15px 2px 18px;
+}
+
 /* Let page headers (title + controls) wrap on narrow screens */
 .container-header > div {
   flex-wrap: wrap;
