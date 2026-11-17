@@ -31,8 +31,10 @@ pio run                  # builds firmware.bin
 pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 ```
 
-- Install the libraries from `lib_deps` in `platformio.ini` into `lib/` if the registry cannot resolve them, then apply `lib_patches/ESPAsyncWebServer-no-regex.patch` inside `lib/ESP Async WebServer` (`git apply`). Without it `std::regex` is linked in and the firmware is about 180 KB larger, which no longer fits next to the one-click update.
-- **Size budget:** the app partition holds 1,310,720 bytes. The firmware currently uses about 90 %. Check the `Flash:` line after every build and do not add large dependencies without removing something. To see what takes the space, link with `-Wl,-Map,out.map` and sum the sections per archive.
+- PlatformIO itself: `python -m pip install --user platformio`, then `python -m platformio run` (the `pio` command is often not on the PATH on Windows). The first build downloads the toolchain (several hundred MB).
+- ESP Async WebServer is pinned to the me-no-dev Git commit `f71e3d4` (version 1.2.3) in `platformio.ini`, because the registry package `me-no-dev/ESP Async WebServer` no longer exists and the GitHub repository now points to the incompatible ESP32Async 3.x. That commit already guards `std::regex` with `ASYNCWEBSERVER_REGEX`, so no patch is needed. `lib_patches/ESPAsyncWebServer-no-regex.patch` is only for older copies without that guard. Without the guard `std::regex` is linked in and the firmware is about 180 KB larger, which no longer fits next to the one-click update. Never let PlatformIO pick a 3.x version.
+- The Adafruit Fingerprint library does not define the colors 4-7 of newer sensors. `FingerprintManager.h` defines `FINGERPRINT_LED_GREEN`/`YELLOW`/`CYAN`/`WHITE` itself (`#ifndef`), keep that.
+- **Size budget:** the app partition holds 1,310,720 bytes. The firmware currently uses about 87 % (2.2: 1,135,366 bytes). Check the `Flash:` line after every build and do not add large dependencies without removing something. To see what takes the space, link with `-Wl,-Map,out.map` and sum the sections per archive.
 - **Filesystem image:** SPIFFS partition at `0x290000`, 1,507,328 bytes (the image is always full size). Firmware at `0x10000`.
 - Never change the partition table: devices in the field are updated over the air, which cannot move partitions.
 

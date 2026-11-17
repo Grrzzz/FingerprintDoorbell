@@ -265,10 +265,7 @@ Your Wi-Fi, MQTT settings, fingerprints and sensor pairing are kept, also when c
 
 Install [Visual Studio Code with the PlatformIO extension](https://platformio.org/platformio-ide), clone the repository and open it. In the PlatformIO tasks of `esp32doit-devkit-v1` choose **Build** (creates `firmware.bin`) and **Build Filesystem Image** (creates `spiffs.bin` with the web interface), then **Upload** and **Upload Filesystem Image**.
 
-Two notes:
-
-- The registry no longer resolves `me-no-dev/ESP Async WebServer`. Install the libraries from `lib_deps` manually into `lib/`.
-- The firmware only fits next to the one-click update if the library does not pull in `std::regex`. Apply [`lib_patches/ESPAsyncWebServer-no-regex.patch`](lib_patches/ESPAsyncWebServer-no-regex.patch) to the library (`git apply` in `lib/ESP Async WebServer`). It makes the regex support of URL handlers optional (not used by this firmware) and saves about 180 KB.
+The libraries are downloaded automatically. ESP Async WebServer is pinned to a Git commit of version 1.2.3 because the registry package no longer exists; that version leaves out `std::regex` (about 180 KB), which the firmware needs to fit next to the one-click update. Do not replace it with ESP32Async 3.x. From the command line: `python -m platformio run` and `python -m platformio run -t buildfs`.
 
 ## Credits
 
