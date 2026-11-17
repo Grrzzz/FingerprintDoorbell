@@ -328,7 +328,10 @@
 
   function route() {
     var v = location.hash.replace('#', '');
+    var sec = '';
+    if (v.indexOf('system/setup/') === 0) { sec = v.slice(13); v = 'system/setup'; }
     v = ALIASES[v] || v;
+    if (v === 'system-setup') showSection(sec || sessionStorage.getItem('cfgSection') || 'general');
     if (VIEWS.indexOf(v) < 0) v = 'overview';
     VIEWS.forEach(function (name) { $('view-' + name).hidden = (name !== v); });
     Array.prototype.forEach.call(document.querySelectorAll('#nav a'), function (a) {
@@ -497,6 +500,7 @@
   function renderStatus() {
     if (!st) return;
     document.title = st.hostname + ' - FingerprintDoorbell';
+    renderCfgHero();
     $('brandName').textContent = st.hostname;
     renderInfo();
     $('brandVersion').textContent = 'Firmware ' + st.version;
@@ -1175,10 +1179,89 @@
         input.value = cfg[f[0]];
       }
     });
+    if (tzCombo) tzCombo.sync();
     updateTopicHint();
     updateSaveBar();
   }
 
+  // ---------- setup: section navigation, hero, combo ----------
+  var tzCombo = null;
+
+  function showSection(id) {
+    var btns = document.querySelectorAll('#cfgNav button');
+    var known = Array.prototype.some.call(btns, function (b) { return b.getAttribute('data-section') === id; });
+    if (!known) id = 'general';
+    try { sessionStorage.setItem('cfgSection', id); } catch (e) { /* ignore */ }
+    Array.prototype.forEach.call(btns, function (b) { b.classList.toggle('cfg-active', b.getAttribute('data-section') === id); });
+    Array.prototype.forEach.call(document.querySelectorAll('#view-system-setup .cfg-panel'), function (p) { p.hidden = p.getAttribute('data-section') !== id; });
+  }
+
+  function renderCfgHero() {
+    if (!st) return;
+    fillChips('cfgChips', [['Hostname', st.hostname], ['IP address', st.ip], ['Firmware', st.version]]);
+  }
+
+  function createCombo(select) {
+    var combo = el('div', 'theme-combo is-wide');
+    var btn = el('button', 'theme-combo-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    var list = el('ul', 'theme-combo-list');
+    list.setAttribute('role', 'listbox');
+    list.hidden = true;
+    combo.append(btn, list);
+    var active = -1;
+    function close() { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    function mark(i) {
+      active = i;
+      Array.prototype.forEach.call(list.children, function (li, k) { li.classList.toggle('active', k === i); });
+    }
+    function open() { list.hidden = false; btn.setAttribute('aria-expanded', 'true'); mark(select.selectedIndex); }
+    function pick(i) {
+      select.selectedIndex = i;
+      select.dispatchEvent(new Event('input', { bubbles: true }));
+      close();
+      btn.focus();
+      sync();
+    }
+    function sync() {
+      var cur = select.options[select.selectedIndex];
+      var name = el('span', 'theme-opt');
+      name.appendChild(el('span', 'theme-opt-name', cur ? cur.textContent : ''));
+      btn.replaceChildren(name, el('span', 'theme-combo-chev', '\u25BE'));
+      list.replaceChildren();
+      Array.prototype.forEach.call(select.options, function (o, i) {
+        var li = el('li', 'theme-combo-item' + (i === select.selectedIndex ? ' selected' : ''));
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', String(i === select.selectedIndex));
+        var w = el('span', 'theme-opt');
+        w.appendChild(el('span', 'theme-opt-name', o.textContent));
+        li.appendChild(w);
+        li.onclick = function () { pick(i); };
+        li.onpointermove = function () { mark(i); };
+        list.appendChild(li);
+      });
+    }
+    btn.onclick = function () { if (list.hidden) open(); else close(); };
+    btn.onkeydown = function (e) {
+      var n = select.options.length;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (list.hidden) open(); else mark((active + (e.key === 'ArrowDown' ? 1 : n - 1)) % n);
+      } else if ((e.key === 'Enter' || e.key === ' ') && !list.hidden) {
+        e.preventDefault();
+        pick(active);
+      } else if (e.key === 'Escape' && !list.hidden) {
+        e.stopPropagation();
+        close();
+      }
+    };
+    document.addEventListener('pointerdown', function (e) { if (!combo.contains(e.target)) close(); });
+    select.hidden = true;
+    select.parentNode.insertBefore(combo, select);
+    return { sync: sync };
+  }
   function settingsDirty() {
     if (!cfg) return false;
     return FIELDS.some(function (f) {
@@ -1198,6 +1281,7 @@
   // one save bar for Connectivity and System: changes that need a restart say so, the ring duration applies immediately
   function updateSaveBar(view) {
     view = view || location.hash.replace('#', '');
+    if (view.indexOf('system/setup/') === 0) view = 'system/setup';
     view = ALIASES[view] || view;
     $('savebar').hidden = !(view === 'system-setup' && formDirty());
     $('btnSaveAll').textContent = settingsDirty() ? 'Save & restart' : 'Save';
@@ -1309,6 +1393,11 @@
       b.onclick = function () { b.closest('dialog').close(); };
     });
 
+    tzCombo = createCombo($('timezone'));
+    document.getElementById('timezone').addEventListener('input', function () { if (tzCombo) tzCombo.sync(); });
+    Array.prototype.forEach.call(document.querySelectorAll('#cfgNav button'), function (b) {
+      b.onclick = function () { location.hash = '#system/setup/' + b.getAttribute('data-section'); };
+    });
     FIELDS.forEach(function (f) {
       var ev = f[1] === 'c' ? 'change' : 'input';
       $(f[0]).addEventListener(ev, function () { updateTopicHint(); updateSaveBar(); });
