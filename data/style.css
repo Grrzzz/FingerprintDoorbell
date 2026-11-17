@@ -102,9 +102,10 @@ button, input, select { font: inherit; color: inherit; }
 .nav-group.open .chev { transform: rotate(180deg); }
 .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: auto; margin-right: -4px; }
 .nav-dot + .chev { margin-left: 8px; }
-.nav-sub { display: none; margin: 2px 0 4px 21px; padding-left: 12px; border-left: 1px solid var(--line); }
+.nav-sub { display: none; margin: 2px 0 6px 21px; padding-left: 12px; border-left: 1px solid var(--line); }
 .nav-group.open .nav-sub { display: block; }
-.nav .nav-sub a { padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+.nav .nav-sub a { padding: 7px 10px; margin: 1px 0; font-size: inherit; font-weight: 400; border-radius: 8px; }
+.nav .nav-sub a.active { font-weight: 600; }
 .foot-meta { font-size: 0.76rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .foot-meta a { color: inherit; }
 .foot-ver { display: inline-flex; align-items: center; gap: 6px; }
