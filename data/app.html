@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=89">
+  <link rel="stylesheet" href="/style.css?v=90">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -347,11 +347,7 @@
       <div class="container-header">
         <div class="container-title">Setup</div>
         <div class="page-sub">Device, integration and sensor settings.</div>
-        <details class="cfg-desc"><summary>How it works</summary><div class="help-panel">
-          <div class="help-item"><h4>Topics</h4><p>Settings are grouped into General, MQTT and Sensor.</p></div>
-          <div class="help-item"><h4>Saving</h4><p>As soon as you change something, a save bar appears at the bottom. If a change needs a restart, it says Save and restart. Discard drops your changes.</p></div>
-        </div></details>
-      </div>
+     </div>
       <div class="container-content">
         <div class="cfg-layout">
           <nav class="cfg-nav" aria-label="Setup sections" id="cfgNav">
@@ -366,16 +362,16 @@
             <div class="cfg-panel" data-section="general">
               <div class="cfg-hero"><div class="cfg-hero-label">This device</div><div class="chips" id="cfgChips"></div></div>
 <div class="card cfg-card">
-          <div class="card-header"><span class="cfg-card-title">Time</span></div>
+          <div class="card-header"><span class="cfg-card-title">Hardware gong</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>NTP server</span></div><div class="cfg-ctl"><input id="ntpServer" type="text" placeholder="pool.ntp.org" aria-label="NTP server"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Time zone</span></div><div class="cfg-ctl"><select id="timezone" class="cfg-wide"><option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe/Berlin, Paris, Rome, Madrid</option><option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London, Dublin, Lisbon</option><option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Helsinki, Athens, Kyiv</option><option value="MSK-3">Europe/Moscow, Istanbul</option><option value="UTC0">UTC</option><option value="EST5EDT,M3.2.0,M11.1.0">US Eastern (New York)</option><option value="CST6CDT,M3.2.0,M11.1.0">US Central (Chicago)</option><option value="MST7MDT,M3.2.0,M11.1.0">US Mountain (Denver)</option><option value="PST8PDT,M3.2.0,M11.1.0">US Pacific (Los Angeles)</option><option value="&lt;+04&gt;-4">Asia/Dubai</option><option value="IST-5:30">Asia/Kolkata</option><option value="CST-8">Asia/Shanghai, Singapore</option><option value="JST-9">Asia/Tokyo</option><option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Australia/Sydney</option></select></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="ringDuration">Ring duration</label></div><div class="cfg-ctl"><input id="ringDuration" class="cfg-num" type="number" min="50" max="5000" step="25" placeholder="275" required><span class="cfg-unit">ms</span><p class="cfg-hint">Duration of the gong signal (default 275 ms).</p></div></div>
           </div>
         </div>
 <div class="card cfg-card">
-          <div class="card-header"><span class="cfg-card-title">Hardware gong</span></div>
+          <div class="card-header"><span class="cfg-card-title">Time</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Ring duration (ms)</span></div><div class="cfg-ctl"><input id="ringDuration" type="number" min="50" max="5000" step="25" placeholder="275" aria-label="Ring duration in milliseconds"><div class="cfg-hint">Duration of the gong signal in milliseconds (default 275).</div></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="ntpServer">NTP server</label></div><div class="cfg-ctl"><input id="ntpServer" type="text" placeholder="pool.ntp.org"></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="timezone">Time zone</label></div><div class="cfg-ctl"><select id="timezone" class="cfg-wide"><option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe/Berlin, Paris, Rome, Madrid</option><option value="GMT0BST,M3.5.0/1,M10.5.0">Europe/London, Dublin, Lisbon</option><option value="EET-2EEST,M3.5.0/3,M10.5.0/4">Europe/Helsinki, Athens, Kyiv</option><option value="MSK-3">Europe/Moscow, Istanbul</option><option value="UTC0">UTC</option><option value="EST5EDT,M3.2.0,M11.1.0">US Eastern (New York)</option><option value="CST6CDT,M3.2.0,M11.1.0">US Central (Chicago)</option><option value="MST7MDT,M3.2.0,M11.1.0">US Mountain (Denver)</option><option value="PST8PDT,M3.2.0,M11.1.0">US Pacific (Los Angeles)</option><option value="&lt;+04&gt;-4">Asia/Dubai</option><option value="IST-5:30">Asia/Kolkata</option><option value="CST-8">Asia/Shanghai, Singapore</option><option value="JST-9">Asia/Tokyo</option><option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Australia/Sydney</option></select></div></div>
           </div>
         </div>
             </div>
@@ -383,17 +379,17 @@
 <div class="card cfg-card">
           <div class="card-header"><span class="cfg-card-title">MQTT</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Broker</span></div><div class="cfg-ctl"><input id="mqttServer" type="text" placeholder="host or host:port" autocomplete="off" aria-label="Broker"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Username</span></div><div class="cfg-ctl"><input id="mqttUsername" type="text" autocomplete="off" aria-label="Username"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Password</span></div><div class="cfg-ctl"><span class="cfg-pw"><input id="mqttPassword" type="password" autocomplete="off" aria-label="Password"><button type="button" class="cfg-eye" id="btnShowPw">Show</button></span><div class="cfg-hint">Leave username and password empty if your broker does not require authentication.</div></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Root topic</span></div><div class="cfg-ctl"><input id="mqttRootTopic" type="text" aria-label="Root topic"><div class="cfg-hint" id="topicHint"></div></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttServer">Broker</label></div><div class="cfg-ctl"><input id="mqttServer" type="text" placeholder="host or host:port" autocomplete="off"></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttUsername">Username</label></div><div class="cfg-ctl"><input id="mqttUsername" type="text" autocomplete="off"></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttPassword">Password</label></div><div class="cfg-ctl"><span class="cfg-pw"><input id="mqttPassword" type="password" autocomplete="off"><button type="button" class="cfg-eye" id="btnShowPw" aria-label="Show or hide the password">Show</button></span><p class="cfg-hint">Leave username and password empty if your broker does not require authentication.</p></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttRootTopic">Root topic</label></div><div class="cfg-ctl"><input id="mqttRootTopic" type="text"><p class="cfg-hint" id="topicHint"></p></div></div>
           </div>
         </div>
 <div class="card cfg-card">
           <div class="card-header"><span class="cfg-card-title">Home Assistant</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Auto discovery</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="haDiscovery" aria-label="Auto discovery"><span></span></label></span><span class="cfg-hint">If disabled, announced entities are removed from Home Assistant.</span></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Discovery prefix</span></div><div class="cfg-ctl"><input id="haDiscoveryPrefix" type="text" placeholder="homeassistant" aria-label="Discovery prefix"><div class="cfg-hint">Default is "homeassistant". Change only if you changed it in the Home Assistant MQTT integration.</div></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Auto discovery</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="haDiscovery" aria-label="Auto discovery"><span></span></label><span class="cfg-switch-text" id="haDiscoveryText">Off</span></span><p class="cfg-hint">If disabled, announced entities are removed from Home Assistant.</p></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="haDiscoveryPrefix">Discovery prefix</label></div><div class="cfg-ctl"><input id="haDiscoveryPrefix" type="text" placeholder="homeassistant"><p class="cfg-hint">Default is "homeassistant". Change only if you changed it in the Home Assistant MQTT integration.</p></div></div>
           </div>
         </div>
             </div>
@@ -401,9 +397,9 @@
 <div class="card cfg-card danger-zone">
           <div class="card-header"><span class="cfg-card-title">Danger zone</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Sensor pairing</span></div><div class="cfg-ctl"><button class="button danger" id="btnPair">Pair new sensor</button><span class="cfg-hint" id="sysPairing">-</span></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Delete all fingerprints</span></div><div class="cfg-ctl"><button class="button danger" id="btnDeleteAll">Delete all</button><span class="cfg-hint">Empties the sensor database.</span></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Factory reset</span></div><div class="cfg-ctl"><button class="button btn-action danger" id="btnFactory">Factory reset</button><span class="cfg-hint">Deletes fingerprints, settings and the Wi-Fi configuration.</span></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Sensor pairing</span></div><div class="cfg-ctl"><button class="button danger" id="btnPair">Pair new sensor</button><p class="cfg-hint" id="sysPairing">-</p></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Delete all fingerprints</span></div><div class="cfg-ctl"><button class="button danger" id="btnDeleteAll">Delete all</button><p class="cfg-hint">Empties the sensor database.</p></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Factory reset</span></div><div class="cfg-ctl"><button class="button btn-action danger" id="btnFactory">Factory reset</button><p class="cfg-hint">Deletes fingerprints, settings and the Wi-Fi configuration.</p></div></div>
           </div>
         </div>
             </div>
@@ -491,6 +487,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=89"></script>
+<script src="/app.js?v=90"></script>
 </body>
 </html>

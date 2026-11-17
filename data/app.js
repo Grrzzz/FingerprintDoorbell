@@ -1195,11 +1195,14 @@
       }
     });
     if (tzCombo) tzCombo.sync();
+    syncSwitchText();
     updateTopicHint();
     updateSaveBar();
   }
 
   // ---------- setup: section navigation, hero, combo ----------
+  function syncSwitchText() { $('haDiscoveryText').textContent = $('haDiscovery').checked ? 'On' : 'Off'; }
+
   var tzCombo = null;
 
   function showSection(id) {
@@ -1415,7 +1418,7 @@
     });
     FIELDS.forEach(function (f) {
       var ev = f[1] === 'c' ? 'change' : 'input';
-      $(f[0]).addEventListener(ev, function () { updateTopicHint(); updateSaveBar(); });
+      $(f[0]).addEventListener(ev, function () { syncSwitchText(); updateTopicHint(); updateSaveBar(); });
     });
     $('ringDuration').addEventListener('input', function () { updateSaveBar(); });
     $('btnDiscard').onclick = function () { fillForm(); $('ringDuration').value = cfg.ringDuration; updateSaveBar(); };

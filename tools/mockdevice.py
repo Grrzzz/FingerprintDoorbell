@@ -5,8 +5,10 @@ Serves the web interface from ../data and answers the JSON API with made up data
 Usage: python mockdevice.py [port] [version]
 The optional version simulates the installed firmware, e.g. "Develop: develop @ 1a2b3c4" or "2.1 Grrzzz+" (dev/modified builds can always update).
 Demo states via query string: /?demo=enroll|schedule|picker|hover|update&theme=dark
+Reboot, settings save, factory reset and OTA (GitHub self-update and manual upload) are simulated:
+the device answers 503 while it restarts, the GitHub release check is answered locally with v9.9.
 """
-import json, os, re, sys, urllib.parse
+import json, os, re, sys, time, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8090
@@ -48,7 +50,6 @@ STATUS = {
     'hostname': 'FingerprintDoorbell', 'version': '2.1 Grrzzz', 'uptime': 3 * 86400 + 5 * 3600 + 1260, 'rssi': -52, 'ssid': 'MyWiFi',
     'ip': '192.168.1.50', 'heap': 218000, 'mode': 'scan', 'sensorConnected': True, 'pairingValid': True, 'mqtt': 'connected',
     'mqttServer': 'mqtt.example.local:1883', 'haDiscovery': True, 'ignoreTouch': False, 'ringEnabled': True, 'fingerCount': len(FINGERS),
-    'update': "setTimeout(function(){location.hash='#system/update';var b=document.getElementById('updBadge');b.className='badge badge-warning';b.textContent='Update available';var s=document.getElementById('sysUpdate');s.textContent='Version v2.2 is ready to install. (release notes)';document.getElementById('btnUpdateNow').hidden=false;},1500);",
     'storage': {'used': 230, 'total': 630},
     'sensor': {'capacity': 200, 'security': 3, 'templates': 12, 'packetLen': 128, 'baud': 57600, 'status': 12, 'address': 4294967295},
     'sys': {'chip': 'ESP32', 'rev': 1, 'cores': 2, 'mhz': 240, 'flash': 4194304, 'heapMin': 152000, 'heapBlock': 110000, 'heapTotal': 295000, 'temp': 47.5,
@@ -63,6 +64,32 @@ SETTINGS = {
     'touchRingActiveColor': 7, 'touchRingActiveSequence': 3, 'scanColor': 7, 'matchColor': 4, 'scanSequence': 1, 'matchSequence': 3,
     'ignoreColor': 6, 'ignoreSequence': 3, 'gongOffColor': 1, 'gongOffSequence': 3, 'ringEnabled': True, 'ringDuration': 275,
 }
+# simulated restart and self-update (timestamps of time.time())
+SIM = {'offline_until': 0, 'ota_start': 0, 'ota_kind': ''}
+OTA_STEPS = [(2, 'checking', 'Downloading update.zip'), (8, 'filesystem', 'Installing the web interface'), (16, 'firmware', 'Installing the firmware')]
+
+
+def reboot(seconds=8):
+    SIM['offline_until'] = time.time() + seconds
+
+
+def offline():
+    return time.time() < SIM['offline_until']
+
+
+def ota_status():
+    if not SIM['ota_start']:
+        return {'state': 'idle', 'percent': 0, 'message': ''}
+    t = time.time() - SIM['ota_start']
+    for end, state, msg in OTA_STEPS:
+        if t < end:
+            pct = 1 if state == 'checking' else 2 + int(96 * (t - OTA_STEPS[0][0]) / (OTA_STEPS[-1][0] - OTA_STEPS[0][0]))
+            return {'state': state, 'percent': pct, 'message': msg}
+    SIM['ota_start'] = 0
+    reboot()
+    return {'state': 'restarting', 'percent': 100, 'message': 'Update installed, restarting'}
+
+
 KEYS = {'touchRingColor': 'touchRingActiveColor', 'touchRingSequence': 'touchRingActiveSequence'}
 
 DEMOS = {
@@ -105,6 +132,29 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def device_action(self, path, q):
+        arg = lambda k: q.get(k, [''])[0]
+        if path == '/reboot':
+            reboot()
+        elif path == '/factoryReset':
+            reboot(60)
+        elif path == '/settings':
+            SETTINGS.update(mqttServer=arg('mqtt_server'), mqttUsername=arg('mqtt_username'), mqttPassword=arg('mqtt_password'),
+                            mqttRootTopic=arg('mqtt_rootTopic'), ntpServer=arg('ntpServer'), timezone=arg('timezone'),
+                            haDiscovery=arg('haDiscovery') == '1', haDiscoveryPrefix=arg('haDiscoveryPrefix'))
+            STATUS['haDiscovery'] = SETTINGS['haDiscovery']
+            reboot()
+        elif path == '/ring' and arg('ringDuration'):
+            SETTINGS['ringDuration'] = int(arg('ringDuration'))
+        elif path == '/deleteAllFingerprints':
+            FINGERS.clear()
+        elif path == '/editFingerprints':
+            f = [x for x in FINGERS if x['id'] == int(arg('selectedFingerprint') or 0)]
+            if f and arg('btnDelete'): FINGERS.remove(f[0])
+            if f and arg('btnRename'): f[0]['name'] = arg('renameNewName')
+        STATUS['fingerCount'] = len(FINGERS)
+        return self.j({'ok': True})
+
     def j(self, obj):
         self.send(200, json.dumps(obj).encode())
 
@@ -113,8 +163,12 @@ class H(BaseHTTPRequestHandler):
         data = self.rfile.read(n) if n else b''
         if self.path.split('?')[0] == '/api/update/upload':
             ok = b'filename=' in data[:400] and (b'.zip' in data[:400] or b'.bin' in data[:400])
+            if ok:
+                time.sleep(3)  # the device installs before it answers
+                reboot()
             return self.send(200 if ok else 400, b'{"ok":true}' if ok else b'choose update.zip or firmware.bin', 'application/json' if ok else 'text/plain')
         self.send(404, b'not found', 'text/plain')
+
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         path, q = u.path, urllib.parse.parse_qs(u.query)
@@ -122,9 +176,21 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, page(u.query), 'text/html')
         if path == '/events':
             return self.send(204, b'')
+        if offline() and path.startswith('/api/'):
+            return self.send(503, b'restarting', 'text/plain')
         if path == '/api/status':
             STATUS['version'] = VERSION
+            STATUS['update'] = ota_status()
             return self.j(STATUS)
+        if path == '/mock/releases/latest':
+            return self.j({'tag_name': 'v9.9', 'html_url': 'https://github.com/Grrzzz/FingerprintDoorbell/releases'})
+        if path == '/api/selfupdate/start':
+            if SIM['ota_start']:
+                return self.send(409, b'an update is already running', 'text/plain')
+            SIM['ota_start'] = time.time()
+            return self.j({'ok': True})
+        if path in ('/reboot', '/pairing', '/deleteAllFingerprints', '/factoryReset', '/settings', '/ring', '/editFingerprints'):
+            return self.device_action(path, q)
         if path == '/api/fingerprints':
             return self.j(FINGERS)
         if path == '/api/settings':
@@ -157,7 +223,10 @@ class H(BaseHTTPRequestHandler):
         name = path.lstrip('/')
         f = os.path.join(DATA, name)
         if os.path.isfile(f):
-            return self.send(200, open(f, 'rb').read(), TYPES.get(os.path.splitext(name)[1], 'application/octet-stream'))
+            body = open(f, 'rb').read()
+            if name == 'app.js':  # answer the GitHub release check locally
+                body = body.replace(b'https://api.github.com/repos/Grrzzz/FingerprintDoorbell/releases/latest', b'/mock/releases/latest')
+            return self.send(200, body, TYPES.get(os.path.splitext(name)[1], 'application/octet-stream'))
         self.send(404, b'not found', 'text/plain')
 
 
