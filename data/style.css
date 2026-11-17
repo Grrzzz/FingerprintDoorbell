@@ -1075,3 +1075,10 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .cfg .cfg-switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--primary-soft); }
 .cfg .cfg-switch-wrap { display: inline-flex; align-items: center; gap: 10px; }
 @media (max-width: 896px) { .cfg .cfg-row { grid-template-columns: minmax(0, 1fr); } .cfg .cfg-ctl input[type='text'], .cfg .cfg-ctl input[type='password'], .cfg .cfg-ctl select.cfg-wide { min-width: 0; } }
+
+/* menu entries are links */
+a.nav-item,
+a.nav-sub-item {
+  text-decoration: none;
+  box-sizing: border-box;
+}
