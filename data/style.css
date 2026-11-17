@@ -2577,7 +2577,8 @@ a.nav-sub-item {
 .dash .dash-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-content: center; }
 .dash .dash-hero > * { grid-column: 1; }
 .dash .dash-hero-main { display: contents; }
-.dash .dash-hero .dash-disc { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+.dash .dash-hero > .dash-hero-head { grid-column: 1 / -1; }
+.dash .dash-hero .dash-disc { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
 .dash .dash-disc { flex: none; width: 64px; height: 64px; box-shadow: 0 4px 14px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .06); }
 .dash .dash-disc .ring-svg circle { stroke-width: 8; }
 .dash .dash-hero-value.state-ok { color: var(--success); }
