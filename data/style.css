@@ -1438,28 +1438,223 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .btn-row { display: flex; gap: 8px; }
 .btn-row .button { flex: 1 1 0; width: auto; }
 .card.cfg-card, .card:has(> .side-body) { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
-.cfg .cfg-card .card-header { gap: 12px; }
-.cfg .cfg-card-title { display: inline-flex; align-items: center; }
-.cfg .cfg-row { display: grid; grid-template-columns: minmax(170px, 320px) minmax(0, 1fr); align-items: center; gap: 6px 16px; padding: 10px 14px; min-width: 0; }
-.cfg .cfg-row + .cfg-row, .cfg .mcp-hint + .cfg-row { border-top: 1px solid var(--border); }
-.cfg .cfg-label { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; color: var(--text-secondary); }
-.cfg .cfg-ctl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; min-width: 0; }
-.cfg .cfg-ctl input[type='number'] { width: 90px; min-width: 72px; }
-.cfg .cfg-ctl input[type='text'], .cfg .cfg-ctl input[type='password'] { width: 100%; min-width: 200px; max-width: 380px; }
-.cfg .cfg-ctl select { min-width: 72px; max-width: 100%; }
-.cfg .cfg-ctl select.cfg-wide { width: 100%; min-width: 250px; }
-.cfg .mcp-note, .cfg .mcp-hint { font-size: 0.8rem; line-height: 1.45; color: var(--text-secondary); padding-inline: 14px; }
-.cfg .cfg-body > .mcp-note { padding-block: 4px 10px; }
-.cfg .cfg-body > .mcp-hint { padding-block: 4px; margin: 0; }
-.cfg .cfg-ctl > .mcp-hint { padding-inline: 0; }
-.cfg .cfg-switch { position: relative; display: inline-block; width: 42px; height: 24px; vertical-align: middle; cursor: pointer; }
-.cfg .cfg-switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.cfg .cfg-switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: background .15s; }
-.cfg .cfg-switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .15s; }
-.cfg .cfg-switch input:checked + span { background: var(--primary); }
-.cfg .cfg-switch input:checked + span::after { transform: translateX(18px); }
-.cfg .cfg-switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--primary-soft); }
-.cfg .cfg-switch-wrap { display: inline-flex; align-items: center; gap: 10px; }
+.cfg .cfg-card .card-header {
+  gap: 12px;
+}
+
+.cfg .cfg-card-title {
+  display: inline-flex;
+  align-items: center;
+}
+
+.cfg .cfg-heading {
+  padding: 16px 16px 6px;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cfg .cfg-body > .cfg-heading:first-child {
+  border-top: 0;
+}
+
+.cfg .cfg-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 320px) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 16px;
+  padding: 10px 14px;
+  min-width: 0;
+}
+
+.cfg .cfg-row + .cfg-row,
+.cfg .cfg-heading + .cfg-row {
+  border-top: 1px solid var(--border);
+}
+
+.cfg .cfg-heading + .cfg-row {
+  border-top: 0;
+}
+
+.cfg .cfg-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.cfg .cfg-l1 .cfg-label {
+  padding-left: 8px;
+}
+
+.cfg .cfg-l2 .cfg-label {
+  padding-left: 20px;
+  box-shadow: inset 2px 0 0 var(--border);
+}
+
+.cfg .cfg-ctl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.cfg .cfg-ctl input[type='number'] {
+  width: 90px;
+  min-width: 72px;
+}
+
+.cfg .cfg-ctl input[type='number'].cfg-num-sm {
+  width: 64px;
+  min-width: 55px;
+}
+
+.cfg .cfg-ctl input[type='text'],
+.cfg .cfg-ctl input[type='password'] {
+  width: 100%;
+  min-width: 200px;
+  max-width: 380px;
+}
+
+.cfg .cfg-ctl select {
+  min-width: 72px;
+  max-width: 100%;
+}
+
+.cfg .cfg-ctl select.cfg-wide {
+  width: 100%;
+  min-width: 250px;
+}
+
+.cfg .cfg-strong {
+  font-weight: 700;
+}
+
+.cfg .cfg-unit,
+.cfg .cfg-pre {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.cfg .cfg-info {
+  color: var(--text-main);
+}
+
+.cfg .cfg-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8em;
+  color: var(--text-secondary);
+}
+
+.cfg .cfg-hint a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cfg .cfg-usage-warn {
+  margin-left: 8px;
+  color: var(--error);
+  font-size: 0.85rem;
+}
+
+.cfg .cfg-pw {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.cfg .cfg-eye,
+.cfg .cfg-scan-btn {
+  width: auto;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+}
+
+.cfg .cfg-eye {
+  border: 0;
+  border-radius: var(--input-radius);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg .cfg-eye:hover {
+  color: var(--primary);
+}
+
+/* ------------------------------------------------------------ switches and option cards */
+.cfg .cfg-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.cfg .cfg-switch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.cfg .cfg-switch span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  transition: background var(--transition-speed);
+}
+
+.cfg .cfg-switch span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition-speed);
+}
+
+.cfg .cfg-switch input:checked + span {
+  background: var(--primary);
+}
+
+.cfg .cfg-switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.cfg .cfg-switch input:focus-visible + span {
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.cfg .cfg-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cfg .cfg-switch-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+
 @media (max-width: 896px) { .cfg .cfg-row { grid-template-columns: minmax(0, 1fr); } .cfg .cfg-ctl input[type='text'], .cfg .cfg-ctl input[type='password'], .cfg .cfg-ctl select.cfg-wide { min-width: 0; } }
 
 /* menu entries are links */
