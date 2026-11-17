@@ -73,7 +73,7 @@
   };
 
   function setDrawer(open) {
-    document.body.classList.toggle('nav-open', open);
+    $('app').classList.toggle('nav-open', open);
     $('burger').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('burger').setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
   }
@@ -275,7 +275,7 @@
       var hint = kb(d.total - d.reserved - free) + ' of ' + kb(usable) + ' usable (' + pct + ' %). About ' + more + ' more fingerprint' + (more === 1 ? '' : 's') + ' fit.';
       if (pct >= 85) hint += ' Almost full: delete fingerprints or shorten names.';
       $('stHint').textContent = hint;
-      $('stHint').style.color = pct >= 85 ? 'var(--bad)' : '';
+      $('stHint').style.color = pct >= 85 ? 'var(--error)' : '';
     }).catch(function () {});
   }
 
@@ -331,7 +331,7 @@
     if (inSystem) setNavOpen(true);
     updateSaveBar(v);
     if (v === 'system-info') loadStorage();
-    window.scrollTo(0, 0);
+    $('main').scrollTo(0, 0);
   }
 
   // ---------- LED ring preview ----------
@@ -1202,7 +1202,7 @@
     setupUpload();
     window.addEventListener('hashchange', route);
     $('updateHint').onclick = function () { location.hash = '#system/update'; };
-    $('burger').onclick = function () { setDrawer(!document.body.classList.contains('nav-open')); };
+    $('burger').onclick = function () { setDrawer(!$('app').classList.contains('nav-open')); };
     $('railBackdrop').onclick = function () { setDrawer(false); };
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') setDrawer(false); });
     window.addEventListener('resize', function () { if (window.innerWidth > 860) setDrawer(false); });
@@ -1216,8 +1216,10 @@
     };
     // theme: auto follows the system, light/dark are remembered in this browser
     function applyTheme(t) {
-      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-      else { t = 'auto'; document.documentElement.removeAttribute('data-theme'); }
+      if (t !== 'light' && t !== 'dark') t = 'auto';
+      var dark = t === 'dark' || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(dark ? 'dark' : 'light');
       Array.prototype.forEach.call($('themeSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-theme') === t); });
       return t;
     }
