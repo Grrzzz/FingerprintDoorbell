@@ -421,7 +421,7 @@
     fillChips('netChips', [['Host', st.hostname], ['Mode', st.mode]]);
     fillKv('netKv', [
       ['Network name', st.ssid], ['Channel', sys.channel], ['Netmask', sys.netmask],
-      ['Gateway', sys.gateway], ['DNS', sys.dns], ['MAC address', sys.mac], ['BSSID', sys.bssid]
+      ['Gateway', sys.gateway], ['DNS', sys.dns], ['MAC address', sys.mac]
     ]);
 
     $('sysVersion').textContent = String(st.version);
@@ -468,11 +468,17 @@
     ]);
 
     var hasClock = !!st.clock;
-    setBadge('timeBadge', hasClock ? 'Synchronized' : 'No time', hasClock ? 'success' : 'warning');
-    var clockText = '-';
-    if (hasClock) clockText = ('0' + Math.floor(st.clock.min / 60)).slice(-2) + ':' + ('0' + st.clock.min % 60).slice(-2);
-    $('timeNow').textContent = hasClock && st.clock.iso ? st.clock.iso : clockText;
-    fillKv('timeKv', [['Uptime', fmtUptime(st.uptime)]]);
+    setBadge('timeBadge', hasClock ? 'Synchronized' : 'Not Synchronized', hasClock ? 'success' : 'warning');
+    var nowText = '-', startText;
+    var m = hasClock && st.clock.iso ? /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)([+-]\d\d)(\d\d)$/.exec(st.clock.iso) : null;
+    if (m) {
+      var utc = (m[7][0] === '-' ? '-' : '+') + m[7].slice(1) + ':' + m[8];
+      nowText = m[1] + '-' + m[2] + '-' + m[3] + ' ' + m[4] + ':' + m[5] + ':' + m[6] + ' (UTC' + utc + ')';
+      var t = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - st.uptime * 1000).toISOString();
+      startText = t.slice(0, 10) + ' ' + t.slice(11, 19) + ' (UTC' + utc + ')';
+    }
+    $('timeNow').textContent = nowText;
+    fillKv('timeKv', [['Started', startText], ['Uptime', fmtUptime(st.uptime)]]);
 
     var list = $('svcList');
     list.textContent = '';

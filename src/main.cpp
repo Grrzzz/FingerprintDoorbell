@@ -207,8 +207,11 @@ String getStatusJson() {
   }
   // device clock (time zone applied), used by the web interface to mark "now" in the schedule views
   struct tm clockInfo;
-  if (getLocalTime(&clockInfo, 0))
-    json += ",\"clock\":{\"day\":" + String((clockInfo.tm_wday + 6) % 7) + ",\"min\":" + String(clockInfo.tm_hour * 60 + clockInfo.tm_min) + ",\"iso\":\"" + String(clockInfo.tm_year + 1900) + "-" + String(clockInfo.tm_mon + 1) + "-" + String(clockInfo.tm_mday) + " " + String(clockInfo.tm_hour) + ":" + (clockInfo.tm_min < 10 ? "0" : "") + String(clockInfo.tm_min) + ":" + (clockInfo.tm_sec < 10 ? "0" : "") + String(clockInfo.tm_sec) + "\"}";
+  if (getLocalTime(&clockInfo, 0)) {
+    char isoBuf[32];
+    strftime(isoBuf, sizeof(isoBuf), "%Y-%m-%dT%H:%M:%S%z", &clockInfo);
+    json += ",\"clock\":{\"day\":" + String((clockInfo.tm_wday + 6) % 7) + ",\"min\":" + String(clockInfo.tm_hour * 60 + clockInfo.tm_min) + ",\"iso\":\"" + isoBuf + "\"}";
+  }
   json += ",\"lastEvent\":{\"type\":\"" + lastEventType + "\",\"name\":\"" + jsonEscape(lastEventName) + "\",\"id\":" + String(lastEventId)
           + ",\"confidence\":" + String(lastEventConfidence) + ",\"time\":\"" + jsonEscape(lastEventTime) + "\"}";
   // log messages, oldest first
