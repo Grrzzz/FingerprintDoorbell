@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=90">
+  <link rel="stylesheet" href="/style.css?v=91">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -353,6 +353,7 @@
           <nav class="cfg-nav" aria-label="Setup sections" id="cfgNav">
             <div class="cfg-nav-group">Device</div>
             <button type="button" data-section="general">General</button>
+            <button type="button" data-section="network">Network</button>
             <div class="cfg-nav-group">Integration</div>
             <button type="button" data-section="mqtt">MQTT</button>
             <div class="cfg-nav-group">Danger zone</div>
@@ -375,21 +376,33 @@
           </div>
         </div>
             </div>
-            <div class="cfg-panel" data-section="mqtt" hidden>
+            <div class="cfg-panel" data-section="network" hidden>
 <div class="card cfg-card">
-          <div class="card-header"><span class="cfg-card-title">MQTT</span></div>
+          <div class="card-header"><span class="cfg-card-title">Network</span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttServer">Broker</label></div><div class="cfg-ctl"><input id="mqttServer" type="text" placeholder="host or host:port" autocomplete="off"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttUsername">Username</label></div><div class="cfg-ctl"><input id="mqttUsername" type="text" autocomplete="off"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttPassword">Password</label></div><div class="cfg-ctl"><span class="cfg-pw"><input id="mqttPassword" type="password" autocomplete="off"><button type="button" class="cfg-eye" id="btnShowPw" aria-label="Show or hide the password">Show</button></span><p class="cfg-hint">Leave username and password empty if your broker does not require authentication.</p></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="mqttRootTopic">Root topic</label></div><div class="cfg-ctl"><input id="mqttRootTopic" type="text"><p class="cfg-hint" id="topicHint"></p></div></div>
+            <div class="cfg-row cfg-l1"><div class="cfg-label"><label for="hostname">Hostname</label></div><div class="cfg-ctl"><input id="hostname" type="text" placeholder="FingerprintDoorbell" maxlength="32" required><p class="cfg-hint">The name under which this device is available in your network.</p></div></div>
+            <div class="cfg-heading">WLAN client configuration</div>
+            <div class="cfg-row cfg-l1"><div class="cfg-label"><label for="ssid">SSID</label></div><div class="cfg-ctl"><input id="ssid" type="text" placeholder="SSID name access point" maxlength="32" required autocomplete="off"><button type="button" class="button cfg-scan-btn" id="btnOpenScan">Find networks</button></div></div>
+            <div class="cfg-row cfg-l1"><div class="cfg-label"><label for="wifiPassword">Password</label></div><div class="cfg-ctl"><span class="cfg-pw"><input id="wifiPassword" type="password" autocomplete="on"><button type="button" class="cfg-eye" id="btnShowWifiPw" aria-label="Show or hide the password">Show</button></span></div></div>
+            <div class="cfg-row cfg-l1"><div class="cfg-label"><label for="networkConfig">Network configuration</label></div><div class="cfg-ctl"><select id="networkConfig"><option value="0">DHCP</option><option value="1">Static</option></select></div></div>
+            <div class="cfg-row cfg-l2" data-show="static"><div class="cfg-label"><label for="ip">IP address</label></div><div class="cfg-ctl"><input id="ip" type="text" placeholder="192.168.xxx.xxx" required></div></div>
+            <div class="cfg-row cfg-l2" data-show="static"><div class="cfg-label"><label for="subnet">Subnet mask</label></div><div class="cfg-ctl"><input id="subnet" type="text" placeholder="255.255.255.0" required></div></div>
+            <div class="cfg-row cfg-l2" data-show="static"><div class="cfg-label"><label for="gateway">Gateway address</label></div><div class="cfg-ctl"><input id="gateway" type="text" placeholder="192.168.xxx.xxx" required></div></div>
+            <div class="cfg-row cfg-l2" data-show="static"><div class="cfg-label"><label for="dns">DNS server</label></div><div class="cfg-ctl"><input id="dns" type="text" placeholder="192.168.xxx.xxx"></div></div>
           </div>
         </div>
+            </div>
+            <div class="cfg-panel" data-section="mqtt" hidden>
 <div class="card cfg-card">
-          <div class="card-header"><span class="cfg-card-title">Home Assistant</span></div>
+          <div class="card-header"><span class="cfg-card-title">MQTT</span><span class="cfg-switch-wrap cfg-enable"><label class="cfg-switch"><input type="checkbox" id="mqttEnabled" aria-label="MQTT"><span></span></label><span class="cfg-switch-text" id="mqttEnabledText">Off</span></span></div>
           <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Auto discovery</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="haDiscovery" aria-label="Auto discovery"><span></span></label><span class="cfg-switch-text" id="haDiscoveryText">Off</span></span><p class="cfg-hint">If disabled, announced entities are removed from Home Assistant.</p></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><label for="haDiscoveryPrefix">Discovery prefix</label></div><div class="cfg-ctl"><input id="haDiscoveryPrefix" type="text" placeholder="homeassistant"><p class="cfg-hint">Default is "homeassistant". Change only if you changed it in the Home Assistant MQTT integration.</p></div></div>
+            <div class="cfg-row cfg-l1" data-show="mqtt"><div class="cfg-label"><label for="mqttServer">URI</label></div><div class="cfg-ctl"><input id="mqttServer" type="text" placeholder="mqtt-server:1883" autocomplete="off" required></div></div>
+            <div class="cfg-row cfg-l1" data-show="mqtt"><div class="cfg-label"><label for="mqttRootTopic">Main topic</label></div><div class="cfg-ctl"><input id="mqttRootTopic" type="text" placeholder="fingerprintDoorbell" required><p class="cfg-hint" id="topicHint"></p></div></div>
+            <div class="cfg-row cfg-l1" data-show="mqtt"><div class="cfg-label"><label for="mqttAuth">Authentication / security</label></div><div class="cfg-ctl"><select id="mqttAuth"><option value="0">None</option><option value="1">Basic</option></select></div></div>
+            <div class="cfg-row cfg-l2" data-show="mqtt auth"><div class="cfg-label"><label for="mqttUsername">Username</label></div><div class="cfg-ctl"><input id="mqttUsername" type="text" autocomplete="off"></div></div>
+            <div class="cfg-row cfg-l2" data-show="mqtt auth"><div class="cfg-label"><label for="mqttPassword">Password</label></div><div class="cfg-ctl"><span class="cfg-pw"><input id="mqttPassword" type="password" autocomplete="off"><button type="button" class="cfg-eye" id="btnShowPw" aria-label="Show or hide the password">Show</button></span></div></div>
+            <div class="cfg-row cfg-l1" data-show="mqtt"><div class="cfg-label"><span>Home Assistant discovery</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="haDiscovery" aria-label="Home Assistant discovery"><span></span></label><span class="cfg-switch-text" id="haDiscoveryText">Off</span></span><p class="cfg-hint">If disabled, announced entities are removed from Home Assistant.</p></div></div>
+            <div class="cfg-row cfg-l2" data-show="mqtt ha"><div class="cfg-label"><label for="haDiscoveryPrefix">Discovery prefix</label></div><div class="cfg-ctl"><input id="haDiscoveryPrefix" type="text" placeholder="homeassistant"><p class="cfg-hint">Default is "homeassistant". Change only if you changed it in the Home Assistant MQTT integration.</p></div></div>
           </div>
         </div>
             </div>
@@ -406,6 +419,14 @@
           </div>
         </div>
       </div>
+      <!-- wifi scan dialog -->
+      <dialog class="dlg cfg-scan" id="dlgScan">
+        <div class="dlg-body">
+          <h2>Available networks</h2>
+          <div class="cfg-scan-list" id="scanList"><div>Scan to list available networks</div></div>
+          <div class="dlg-actions"><button type="button" class="button" data-close>Close</button><button type="button" class="button btn-action" id="btnRunScan">Scan networks</button></div>
+        </div>
+      </dialog>
     </section>
 
     </div>
@@ -487,6 +508,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=90"></script>
+<script src="/app.js?v=91"></script>
 </body>
 </html>

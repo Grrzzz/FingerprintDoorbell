@@ -7,6 +7,11 @@ bool SettingsManager::loadWifiSettings() {
         wifiSettings.ssid = preferences.getString("ssid", String(""));
         wifiSettings.password = preferences.getString("password", String(""));
         wifiSettings.hostname = preferences.getString("hostname", String("FingerprintDoorbell"));
+        wifiSettings.staticIp = preferences.getBool("staticIp", false);
+        wifiSettings.ip = preferences.getString("ip", String(""));
+        wifiSettings.subnet = preferences.getString("subnet", String(""));
+        wifiSettings.gateway = preferences.getString("gateway", String(""));
+        wifiSettings.dns = preferences.getString("dns", String(""));
         preferences.end();
         return true;
     } else {
@@ -18,6 +23,7 @@ bool SettingsManager::loadAppSettings() {
     Preferences preferences;
     if (preferences.begin("appSettings", true)) {
         appSettings.mqttServer = preferences.getString("mqttServer", String(""));
+        appSettings.mqttEnabled = preferences.getBool("mqttEnabled", !appSettings.mqttServer.isEmpty()); // older versions: a broker means on
         appSettings.mqttUsername = preferences.getString("mqttUsername", String(""));
         appSettings.mqttPassword = preferences.getString("mqttPassword", String(""));
         appSettings.mqttRootTopic = preferences.getString("mqttRootTopic", String("fingerprintDoorbell"));
@@ -63,12 +69,18 @@ void SettingsManager::saveWifiSettings() {
     preferences.putString("ssid", wifiSettings.ssid);
     preferences.putString("password", wifiSettings.password);
     preferences.putString("hostname", wifiSettings.hostname);
+    preferences.putBool("staticIp", wifiSettings.staticIp);
+    preferences.putString("ip", wifiSettings.ip);
+    preferences.putString("subnet", wifiSettings.subnet);
+    preferences.putString("gateway", wifiSettings.gateway);
+    preferences.putString("dns", wifiSettings.dns);
     preferences.end();
 }
 
 void SettingsManager::saveAppSettings() {
     Preferences preferences;
     preferences.begin("appSettings", false); 
+    preferences.putBool("mqttEnabled", appSettings.mqttEnabled);
     preferences.putString("mqttServer", appSettings.mqttServer);
     preferences.putString("mqttUsername", appSettings.mqttUsername);
     preferences.putString("mqttPassword", appSettings.mqttPassword);

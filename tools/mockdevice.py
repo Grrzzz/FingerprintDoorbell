@@ -59,11 +59,20 @@ STATUS = {
     'log': LOG,
 }
 SETTINGS = {
-    'mqttServer': 'mqtt.example.local', 'mqttUsername': 'doorbell', 'mqttPassword': 'secret', 'mqttRootTopic': 'fingerprintDoorbell',
+    'mqttEnabled': True, 'mqttServer': 'mqtt.example.local', 'mqttUsername': 'doorbell', 'mqttPassword': 'secret', 'mqttRootTopic': 'fingerprintDoorbell',
     'ntpServer': 'pool.ntp.org', 'timezone': 'CET-1CEST,M3.5.0,M10.5.0/3', 'haDiscovery': True, 'haDiscoveryPrefix': 'homeassistant',
     'touchRingActiveColor': 7, 'touchRingActiveSequence': 3, 'scanColor': 7, 'matchColor': 4, 'scanSequence': 1, 'matchSequence': 3,
     'ignoreColor': 6, 'ignoreSequence': 3, 'gongOffColor': 1, 'gongOffSequence': 3, 'ringEnabled': True, 'ringDuration': 275,
+    'hostname': 'FingerprintDoorbell', 'ssid': 'MyWiFi', 'wifiPassword': '********', 'staticIp': False, 'ip': '', 'subnet': '', 'gateway': '', 'dns': '',
 }
+WIFI_SCAN = [
+    {'ssid': 'MyWiFi', 'rssi': -52, 'channel': 6, 'authmode': 'WPA2_PSK'},
+    {'ssid': 'MyWiFi', 'rssi': -71, 'channel': 11, 'authmode': 'WPA2_PSK'},
+    {'ssid': 'Neighbour 5G', 'rssi': -69, 'channel': 1, 'authmode': 'WPA_WPA2_PSK'},
+    {'ssid': 'Guest', 'rssi': -80, 'channel': 6, 'authmode': 'OPEN'},
+    {'ssid': '', 'rssi': -60, 'channel': 3, 'authmode': 'WPA2_PSK'},
+    {'ssid': 'Garage <b>IoT</b>', 'rssi': -88, 'channel': 13, 'authmode': 'WPA2_PSK'},
+]
 # simulated restart and self-update (timestamps of time.time())
 SIM = {'offline_until': 0, 'ota_start': 0, 'ota_kind': ''}
 OTA_STEPS = [(2, 'checking', 'Downloading update.zip'), (8, 'filesystem', 'Installing the web interface'), (16, 'firmware', 'Installing the firmware')]
@@ -139,11 +148,23 @@ class H(BaseHTTPRequestHandler):
         elif path == '/factoryReset':
             reboot(60)
         elif path == '/settings':
-            SETTINGS.update(mqttServer=arg('mqtt_server'), mqttUsername=arg('mqtt_username'), mqttPassword=arg('mqtt_password'),
+            SETTINGS.update(mqttEnabled=arg('mqttEnabled') == '1', mqttServer=arg('mqtt_server'), mqttUsername=arg('mqtt_username'), mqttPassword=arg('mqtt_password'),
                             mqttRootTopic=arg('mqtt_rootTopic'), ntpServer=arg('ntpServer'), timezone=arg('timezone'),
                             haDiscovery=arg('haDiscovery') == '1', haDiscoveryPrefix=arg('haDiscoveryPrefix'))
             STATUS['haDiscovery'] = SETTINGS['haDiscovery']
+            STATUS['mqtt'] = 'disabled' if not SETTINGS['mqttEnabled'] else 'unconfigured' if not SETTINGS['mqttServer'] else 'connected'
             reboot()
+        elif path == '/network':
+            if not arg('ssid'):
+                return self.send(400, b'{"error":"ssid missing"}', 'application/json')
+            static = arg('staticIp') == '1'
+            SETTINGS.update(hostname=arg('hostname') or SETTINGS['hostname'], ssid=arg('ssid'), staticIp=static,
+                            ip=arg('ip'), subnet=arg('subnet'), gateway=arg('gateway'), dns=arg('dns'))
+            if arg('password') != '********':
+                SETTINGS['wifiPassword'] = '********' if arg('password') else ''
+            STATUS.update(hostname=SETTINGS['hostname'], ssid=SETTINGS['ssid'])
+            if static: STATUS['ip'] = SETTINGS['ip']
+            if not arg('noReboot'): reboot()
         elif path == '/ring' and arg('ringDuration'):
             SETTINGS['ringDuration'] = int(arg('ringDuration'))
         elif path == '/deleteAllFingerprints':
@@ -189,12 +210,19 @@ class H(BaseHTTPRequestHandler):
                 return self.send(409, b'an update is already running', 'text/plain')
             SIM['ota_start'] = time.time()
             return self.j({'ok': True})
-        if path in ('/reboot', '/pairing', '/deleteAllFingerprints', '/factoryReset', '/settings', '/ring', '/editFingerprints'):
+        if path in ('/reboot', '/pairing', '/deleteAllFingerprints', '/factoryReset', '/settings', '/network', '/ring', '/editFingerprints'):
             return self.device_action(path, q)
         if path == '/api/fingerprints':
             return self.j(FINGERS)
         if path == '/api/settings':
             return self.j(SETTINGS)
+        if path == '/api/wifi/scan':  # the device scans asynchronously: first call starts, later calls answer after ~2 s
+            if not SIM.get('scan_start'):
+                SIM['scan_start'] = time.time()
+            if time.time() - SIM['scan_start'] < 2:
+                return self.j({'running': True, 'networks': []})
+            SIM['scan_start'] = 0
+            return self.j({'running': False, 'networks': WIFI_SCAN})
         if path == '/api/storage':
             return self.j({'total': 630, 'used': 230, 'reserved': 126, 'fingers': 31, 'settings': 39, 'other': 160, 'fingerCount': len(FINGERS)})
         if path == '/api/led':

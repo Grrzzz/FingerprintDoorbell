@@ -8,9 +8,15 @@ struct WifiSettings {
     String ssid = "";
     String password = "";
     String hostname = "";
+    bool   staticIp = false; // false: DHCP
+    String ip = "";
+    String subnet = "";
+    String gateway = "";
+    String dns = "";
 };
 
 struct AppSettings {
+    bool   mqttEnabled = false;
     String mqttServer = "";
     String mqttUsername = "";
     String mqttPassword = "";

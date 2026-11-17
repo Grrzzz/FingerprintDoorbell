@@ -47,6 +47,12 @@
 
   function fail(e) { toast('Request failed: ' + e.message, true); }
 
+  // MQTT switched off or without broker: shown as inactive, not as an error
+  function mqttOff() { return st.mqtt === 'disabled' || st.mqtt === 'unconfigured'; }
+  function mqttText() {
+    return st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'disabled' ? 'Disabled' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline';
+  }
+
   function fmtUptime(s) {
     var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
     if (d) return d + 'd ' + h + 'h';
@@ -490,8 +496,8 @@
     var list = $('svcList');
     list.textContent = '';
     [
-      ['MQTT', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline', st.mqtt === 'connected' ? 'success' : st.mqtt === 'unconfigured' ? 'disabled' : 'error'],
-      ['Home Assistant', st.mqtt === 'unconfigured' ? 'Not configured' : (st.haDiscovery ? 'Discovery on' : 'Discovery off'), st.mqtt !== 'unconfigured' && st.haDiscovery ? 'success' : 'disabled']
+      ['MQTT', mqttText(), mqttOff() ? 'disabled' : st.mqtt === 'connected' ? 'success' : 'error'],
+      ['Home Assistant', mqttOff() ? mqttText() : (st.haDiscovery ? 'Discovery on' : 'Discovery off'), !mqttOff() && st.haDiscovery ? 'success' : 'disabled']
     ].forEach(function (s) {
       var row = el('div', 'sys-svc');
       row.appendChild(el('span', '', s[0]));
@@ -556,9 +562,8 @@
 
     setBadge('svcSensor', st.sensorConnected ? (st.pairingValid ? 'Paired' : 'Not paired') : 'Missing',
       st.sensorConnected && st.pairingValid ? 'success' : 'error');
-    setBadge('svcMqtt', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline',
-      st.mqtt === 'connected' ? 'success' : st.mqtt === 'unconfigured' ? 'disabled' : 'error');
-    $('svcHaBox').hidden = st.mqtt === 'unconfigured';
+    setBadge('svcMqtt', mqttText(), mqttOff() ? 'disabled' : st.mqtt === 'connected' ? 'success' : 'error');
+    $('svcHaBox').hidden = mqttOff();
     setBadge('svcHa', st.haDiscovery ? 'Discovery on' : 'Discovery off', st.haDiscovery ? 'success' : 'disabled');
 
     $('swIgnore').checked = st.ignoreTouch;
@@ -574,7 +579,7 @@
 
     if (st.log) setLog(st.log);
     Array.prototype.forEach.call(document.querySelectorAll('.wk-now'), positionNow);
-    writeFavicon(!st.sensorConnected || !st.pairingValid ? 'bad' : (st.mqtt !== 'connected' && st.mqtt !== 'unconfigured') ? 'warn' : 'ok');
+    writeFavicon(!st.sensorConnected || !st.pairingValid ? 'bad' : (st.mqtt !== 'connected' && !mqttOff()) ? 'warn' : 'ok');
     checkUpdate(false);
   }
 
@@ -1182,26 +1187,162 @@
   }
 
   // ---------- connectivity form ----------
-  var FIELDS = [['mqttServer', 'v'], ['mqttUsername', 'v'], ['mqttPassword', 'v'], ['mqttRootTopic', 'v'], ['ntpServer', 'v'], ['timezone', 'v'], ['haDiscovery', 'c'], ['haDiscoveryPrefix', 'v']];
+  // [id, kind]: v = text value, c = checkbox, d = select derived from other settings
+  var FIELDS = [['mqttEnabled', 'c'], ['mqttServer', 'v'], ['mqttAuth', 'd'], ['mqttUsername', 'v'], ['mqttPassword', 'v'], ['mqttRootTopic', 'v'],
+    ['ntpServer', 'v'], ['timezone', 'v'], ['haDiscovery', 'c'], ['haDiscoveryPrefix', 'v']];
+  var NET_FIELDS = [['hostname', 'v'], ['ssid', 'v'], ['wifiPassword', 'v'], ['networkConfig', 'd'], ['ip', 'v'], ['subnet', 'v'], ['gateway', 'v'], ['dns', 'v']];
+  var SWITCHES = ['mqttEnabled', 'haDiscovery'];
 
-  function fillForm() {
-    FIELDS.forEach(function (f) {
-      var input = $(f[0]);
-      if (f[1] === 'c') input.checked = !!cfg[f[0]];
+  function savedValue(id) {
+    if (id === 'mqttAuth') return cfg.mqttUsername ? '1' : '0';
+    if (id === 'networkConfig') return cfg.staticIp ? '1' : '0';
+    return cfg[id] === undefined ? '' : cfg[id];
+  }
+
+  function fillFields(list) {
+    list.forEach(function (f) {
+      var input = $(f[0]), v = savedValue(f[0]);
+      if (f[1] === 'c') input.checked = !!v;
       else {
-        if (input.tagName === 'SELECT' && cfg[f[0]] && !Array.prototype.some.call(input.options, function (o) { return o.value === cfg[f[0]]; }))
-          input.appendChild(el('option', '', 'Custom: ' + cfg[f[0]])).value = cfg[f[0]];
-        input.value = cfg[f[0]];
+        if (input.tagName === 'SELECT' && v && !Array.prototype.some.call(input.options, function (o) { return o.value === v; }))
+          input.appendChild(el('option', '', 'Custom: ' + v)).value = v;
+        input.value = v;
       }
     });
+  }
+
+  function fillForm() {
+    fillFields(FIELDS);
+    fillFields(NET_FIELDS);
     if (tzCombo) tzCombo.sync();
     syncSwitchText();
+    applyVisibility();
     updateTopicHint();
     updateSaveBar();
   }
 
+  // rows with data-show="a b" are visible while all their conditions hold (as the reference: an enable switch keeps the card visible)
+  function applyVisibility() {
+    var cond = {
+      mqtt: $('mqttEnabled').checked,
+      auth: $('mqttAuth').value === '1',
+      ha: $('haDiscovery').checked,
+      'static': $('networkConfig').value === '1'
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('#view-system-setup [data-show]'), function (row) {
+      row.hidden = !row.getAttribute('data-show').split(' ').every(function (c) { return cond[c]; });
+    });
+  }
+
+  // digits and dots only, max 4 octets of 0-255 (validateIpMasks of the reference)
+  function ipMask(input) {
+    input.setAttribute('maxlength', '15');
+    input.setAttribute('autocomplete', 'off');
+    input.addEventListener('input', function () {
+      input.value = input.value.replace(/[^0-9.]/g, '').split('.').slice(0, 4).map(function (octet) {
+        var o = octet.slice(0, 3);
+        return parseInt(o, 10) > 255 ? '255' : o;
+      }).join('.');
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Backspace') return;
+      var pos = input.selectionStart;
+      if (pos === input.selectionEnd && pos > 0 && input.value[pos - 1] === '.') {
+        e.preventDefault();
+        input.value = input.value.slice(0, pos - 1) + input.value.slice(pos);
+        input.setSelectionRange(pos - 1, pos - 1);
+      }
+    });
+  }
+
+  function validIp(v) { return /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(v) && v.split('.').every(function (o) { return +o <= 255; }); }
+
+  // ---------- Wi-Fi scan (reference: signalBars, signalIcon, cleanNetworks, runScan, pickSsid) ----------
+  var scanToken = 0;
+  function signalBars(rssi) { return rssi >= -55 ? 4 : rssi >= -67 ? 3 : rssi >= -78 ? 2 : rssi >= -85 ? 1 : 0; }
+
+  function signalIcon(bars, secured) {
+    var svgNs = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('viewBox', '0 0 40 16');
+    svg.setAttribute('class', 'cfg-scan-icon');
+    svg.setAttribute('aria-hidden', 'true');
+    function add(tag, attrs, cls) {
+      var e = document.createElementNS(svgNs, tag);
+      Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+      if (cls) e.setAttribute('class', cls);
+      svg.appendChild(e);
+    }
+    if (secured) {
+      add('rect', { x: 0, y: 7, width: 9, height: 8, rx: 1.5 }, 'cfg-scan-lock');
+      add('path', { d: 'M2 7V5a2.5 2.5 0 0 1 5 0v2', fill: 'none', 'stroke-width': 1.5 }, 'cfg-scan-lock');
+    }
+    for (var i = 0; i < 4; i++)
+      add('rect', { x: 15 + i * 6.5, y: 15 - (i + 1) * 3.5, width: 4.5, height: (i + 1) * 3.5, rx: 1 }, i < bars ? 'cfg-scan-bar on' : 'cfg-scan-bar');
+    return svg;
+  }
+
+  // visible networks only, one entry per SSID (the strongest), strongest first
+  function cleanNetworks(networks) {
+    var best = {};
+    networks.forEach(function (n) {
+      var ssid = String(n.ssid == null ? '' : n.ssid).trim();
+      if (!ssid) return; // hidden network without name
+      if (!best[ssid] || n.rssi > best[ssid].rssi) best[ssid] = { ssid: ssid, rssi: n.rssi, channel: n.channel, authmode: n.authmode };
+    });
+    return Object.keys(best).map(function (k) { return best[k]; }).sort(function (x, y) { return y.rssi - x.rssi; });
+  }
+
+  // the device scans asynchronously: poll until the result is there (max ~15 s)
+  function wlanScan() {
+    var tries = 0;
+    return new Promise(function (resolve, reject) {
+      (function poll() {
+        getJson('/api/wifi/scan').then(function (r) {
+          if (!r.running) resolve(r.networks || []);
+          else if (++tries > 30) reject(new Error('scan timeout'));
+          else setTimeout(poll, 500);
+        }).catch(reject);
+      })();
+    });
+  }
+
+  function runScan() {
+    var list = $('scanList');
+    var token = ++scanToken;
+    $('btnRunScan').disabled = true;
+    list.replaceChildren(el('div', 'cfg-scan-empty', 'Scanning ...'));
+    wlanScan().catch(function () { return []; }).then(function (networks) {
+      if (token !== scanToken) return;
+      $('btnRunScan').disabled = false;
+      list.replaceChildren();
+      var visible = cleanNetworks(networks);
+      if (!visible.length) { list.appendChild(el('div', 'cfg-scan-empty', 'No networks found')); return; }
+      var current = $('ssid').value.trim();
+      visible.forEach(function (n) {
+        // SSIDs come from the air: textContent only
+        var row = el('button', 'cfg-scan-item');
+        row.type = 'button';
+        var text = el('span', 'cfg-scan-text');
+        var name = el('span', 'cfg-scan-ssid', n.ssid);
+        if (n.ssid === current) name.appendChild(el('span', 'cfg-scan-current', 'current'));
+        var secured = n.authmode !== 'OPEN';
+        text.append(name, el('span', 'cfg-scan-meta', 'Channel ' + n.channel + ' \u00b7 ' + n.rssi + ' dBm \u00b7 ' + (secured ? n.authmode : 'Open')));
+        row.append(text, signalIcon(signalBars(n.rssi), secured));
+        row.onclick = function () { pickSsid(n.ssid); };
+        list.appendChild(row);
+      });
+    });
+  }
+
+  function pickSsid(ssid) {
+    $('dlgScan').close();
+    $('ssid').value = ssid;
+    $('ssid').dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   // ---------- setup: section navigation, hero, combo ----------
-  function syncSwitchText() { $('haDiscoveryText').textContent = $('haDiscovery').checked ? 'On' : 'Off'; }
+  function syncSwitchText() { SWITCHES.forEach(function (id) { $(id + 'Text').textContent = $(id).checked ? 'On' : 'Off'; }); }
 
   var tzCombo = null;
 
@@ -1280,13 +1421,15 @@
     select.parentNode.insertBefore(combo, select);
     return { sync: sync };
   }
-  function settingsDirty() {
+  function fieldsDirty(list) {
     if (!cfg) return false;
-    return FIELDS.some(function (f) {
+    return list.some(function (f) {
       var input = $(f[0]);
-      return (f[1] === 'c' ? input.checked : input.value) !== cfg[f[0]];
+      return f[1] === 'c' ? input.checked !== !!savedValue(f[0]) : input.value !== String(savedValue(f[0]));
     });
   }
+  function networkDirty() { return fieldsDirty(NET_FIELDS); }
+  function settingsDirty() { return fieldsDirty(FIELDS) || networkDirty(); }
 
   function ringDirty() {
     if (!cfg) return false;
@@ -1314,24 +1457,46 @@
     var sd = settingsDirty(), rd = ringDirty();
     var d = parseInt($('ringDuration').value, 10);
     if (rd && !(d >= 50 && d <= 5000)) { toast('Duration must be 50-5000 ms', true); return; }
-    if (sd && (!$('mqttServer').value.trim() || !$('mqttRootTopic').value.trim())) { toast('Broker and root topic are required', true); return; }
+    var mqttOn = $('mqttEnabled').checked, basic = $('mqttAuth').value === '1', staticIp = $('networkConfig').value === '1';
+    if (sd && mqttOn && (!$('mqttServer').value.trim() || !$('mqttRootTopic').value.trim())) { toast('URI and main topic are required', true); return; }
+    if (sd && mqttOn && basic && !$('mqttUsername').value.trim()) { toast('Username is required for basic authentication', true); return; }
+    var nd = networkDirty();
+    if (nd && (!$('hostname').value.trim() || !$('ssid').value.trim())) { toast('Hostname and SSID are required', true); return; }
+    if (nd && staticIp && !(validIp($('ip').value) && validIp($('subnet').value) && validIp($('gateway').value) && ($('dns').value === '' || validIp($('dns').value)))) {
+      toast('Enter valid IP addresses', true); return;
+    }
     var ringSaved = rd ? action('/ring?btnSaveRing=1&ringDuration=' + d + (st && st.ringEnabled ? '&ringEnabled=on' : '')) : Promise.resolve();
     ringSaved.then(function () {
       if (!sd) {
         toast('Saved');
         return Promise.all([getJson('/api/settings').then(function (c) { cfg = c; fillForm(); $('ringDuration').value = cfg.ringDuration; renderLed(); }), loadStatus()]);
       }
+      var n = new URLSearchParams();
+      if (nd) {
+        n.set('hostname', $('hostname').value.trim());
+        n.set('ssid', $('ssid').value.trim());
+        n.set('password', $('wifiPassword').value);
+        if (staticIp) n.set('staticIp', '1');
+        n.set('ip', staticIp ? $('ip').value : '');
+        n.set('subnet', staticIp ? $('subnet').value : '');
+        n.set('gateway', staticIp ? $('gateway').value : '');
+        n.set('dns', staticIp ? $('dns').value : '');
+        n.set('noReboot', '1');
+      }
       var p = new URLSearchParams();
       p.set('btnSaveSettings', '1');
+      if (mqttOn) p.set('mqttEnabled', '1');
       p.set('mqtt_server', $('mqttServer').value.trim());
-      p.set('mqtt_username', $('mqttUsername').value);
-      p.set('mqtt_password', $('mqttPassword').value);
+      p.set('mqtt_username', basic ? $('mqttUsername').value : '');
+      p.set('mqtt_password', basic ? $('mqttPassword').value : '');
       p.set('mqtt_rootTopic', $('mqttRootTopic').value.trim());
       p.set('ntpServer', $('ntpServer').value.trim());
       p.set('timezone', $('timezone').value);
       if ($('haDiscovery').checked) p.set('haDiscovery', '1');
       p.set('haDiscoveryPrefix', $('haDiscoveryPrefix').value.trim());
-      return action('/settings?' + p.toString()).then(function () { restartOverlay('Saving and restarting...'); });
+      return (nd ? action('/network?' + n.toString()) : Promise.resolve()).then(function () {
+        return action('/settings?' + p.toString());
+      }).then(function () { restartOverlay('Saving and restarting...'); });
     }).catch(fail);
   }
 
@@ -1416,18 +1581,23 @@
     Array.prototype.forEach.call(document.querySelectorAll('#cfgNav button'), function (b) {
       b.onclick = function () { location.hash = '#system/setup/' + b.getAttribute('data-section'); };
     });
-    FIELDS.forEach(function (f) {
-      var ev = f[1] === 'c' ? 'change' : 'input';
-      $(f[0]).addEventListener(ev, function () { syncSwitchText(); updateTopicHint(); updateSaveBar(); });
+    FIELDS.concat(NET_FIELDS).forEach(function (f) {
+      var ev = f[1] === 'v' ? 'input' : 'change';
+      $(f[0]).addEventListener(ev, function () { syncSwitchText(); applyVisibility(); updateTopicHint(); updateSaveBar(); });
     });
+    ['ip', 'subnet', 'gateway', 'dns'].forEach(function (id) { ipMask($(id)); });
+    $('btnOpenScan').onclick = function () { $('dlgScan').showModal(); };
+    $('btnRunScan').onclick = runScan;
     $('ringDuration').addEventListener('input', function () { updateSaveBar(); });
     $('btnDiscard').onclick = function () { fillForm(); $('ringDuration').value = cfg.ringDuration; updateSaveBar(); };
     $('btnSaveAll').onclick = saveAll;
-    $('btnShowPw').onclick = function () {
-      var pw = $('mqttPassword');
-      pw.type = pw.type === 'password' ? 'text' : 'password';
-      this.textContent = pw.type === 'password' ? 'Show' : 'Hide';
-    };
+    ['btnShowPw', 'btnShowWifiPw'].forEach(function (id) {
+      $(id).onclick = function () {
+        var pw = this.previousElementSibling;
+        pw.type = pw.type === 'password' ? 'text' : 'password';
+        this.textContent = pw.type === 'password' ? 'Show' : 'Hide';
+      };
+    });
 
     $('btnPair').onclick = function () {
       confirmDialog('Pair a new sensor?', 'Use this after replacing the fingerprint sensor. Only do this if you trust the sensor.', 'Pair', function () {

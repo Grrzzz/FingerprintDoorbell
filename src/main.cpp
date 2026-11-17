@@ -166,7 +166,7 @@ String getStatusJson() {
   if (currentMode == Mode::enroll) modeName = "enroll";
   else if (currentMode == Mode::maintenance) modeName = "maintenance";
   else if (currentMode == Mode::wificonfig) modeName = "wificonfig";
-  const char* mqttState = s.mqttServer.isEmpty() ? "unconfigured" : (mqttClient.connected() ? "connected" : "disconnected");
+  const char* mqttState = !s.mqttEnabled ? "disabled" : s.mqttServer.isEmpty() ? "unconfigured" : (mqttClient.connected() ? "connected" : "disconnected");
 
   String json = "{";
   json += "\"hostname\":\"" + jsonEscape(settingsManager.getWifiSettings().hostname) + "\"";
@@ -232,8 +232,10 @@ String getStatusJson() {
 String getSettingsJson() {
   const AppSettings s = settingsManager.getAppSettings();
   const RingSettings r = settingsManager.getRingSettings();
+  const WifiSettings w = settingsManager.getWifiSettings();
   String json = "{";
-  json += "\"mqttServer\":\"" + jsonEscape(s.mqttServer) + "\"";
+  json += String("\"mqttEnabled\":") + (s.mqttEnabled ? "true" : "false");
+  json += ",\"mqttServer\":\"" + jsonEscape(s.mqttServer) + "\"";
   json += ",\"mqttUsername\":\"" + jsonEscape(s.mqttUsername) + "\"";
   json += ",\"mqttPassword\":\"" + jsonEscape(s.mqttPassword) + "\"";
   json += ",\"mqttRootTopic\":\"" + jsonEscape(s.mqttRootTopic) + "\"";
@@ -253,6 +255,15 @@ String getSettingsJson() {
   json += ",\"gongOffSequence\":" + String(s.gongOffSequence);
   json += String(",\"ringEnabled\":") + (r.ringEnabled ? "true" : "false");
   json += ",\"ringDuration\":" + String(r.ringDuration);
+  // network: the Wi-Fi password never leaves the device, "********" stands for "keep the stored one"
+  json += ",\"hostname\":\"" + jsonEscape(w.hostname) + "\"";
+  json += ",\"ssid\":\"" + jsonEscape(w.ssid) + "\"";
+  json += String(",\"wifiPassword\":\"") + (w.password.isEmpty() ? "" : "********") + "\"";
+  json += String(",\"staticIp\":") + (w.staticIp ? "true" : "false");
+  json += ",\"ip\":\"" + jsonEscape(w.ip) + "\"";
+  json += ",\"subnet\":\"" + jsonEscape(w.subnet) + "\"";
+  json += ",\"gateway\":\"" + jsonEscape(w.gateway) + "\"";
+  json += ",\"dns\":\"" + jsonEscape(w.dns) + "\"";
   return json + "}";
 }
 
@@ -425,7 +436,14 @@ bool initWifi() {
   // Connect to Wi-Fi
   WifiSettings wifiSettings = settingsManager.getWifiSettings();
   WiFi.mode(WIFI_STA);
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  IPAddress ip, subnet, gateway, dns;
+  if (wifiSettings.staticIp && ip.fromString(wifiSettings.ip) && subnet.fromString(wifiSettings.subnet) && gateway.fromString(wifiSettings.gateway)) {
+    if (!dns.fromString(wifiSettings.dns))
+      dns = gateway;
+    WiFi.config(ip, gateway, subnet, dns);
+  } else {
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); // DHCP
+  }
   WiFi.setHostname(wifiSettings.hostname.c_str()); //define hostname
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
   int counter = 0;
@@ -490,6 +508,7 @@ void startWebserver(){
           settings.password = settingsManager.getWifiSettings().password; // use the old, already saved, one
         else
           settings.password = request->arg("password");
+        settings.staticIp = false; // the config portal is the rescue path: back to DHCP
         settingsManager.saveWifiSettings(settings);
         shouldReboot = true;
       }
@@ -540,6 +559,72 @@ void startWebserver(){
 
     webServer.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request){
       sendJson(request, getSettingsJson());
+    });
+
+    // Wi-Fi scan: the first call starts an async scan, later calls return {"running":true} until the result is there
+    webServer.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest *request){
+      int n = WiFi.scanComplete();
+      if (n == WIFI_SCAN_FAILED) {
+        WiFi.scanNetworks(true);
+        sendJson(request, "{\"running\":true,\"networks\":[]}");
+        return;
+      }
+      if (n == WIFI_SCAN_RUNNING) {
+        sendJson(request, "{\"running\":true,\"networks\":[]}");
+        return;
+      }
+      String json = "{\"running\":false,\"networks\":[";
+      for (int i = 0; i < n; i++) {
+        if (i) json += ",";
+        json += "{\"ssid\":\"" + jsonEscape(WiFi.SSID(i)) + "\"";
+        json += ",\"rssi\":" + String(WiFi.RSSI(i));
+        json += ",\"channel\":" + String(WiFi.channel(i));
+        const char* auth = "SECURED";
+        switch (WiFi.encryptionType(i)) {
+          case WIFI_AUTH_OPEN: auth = "OPEN"; break;
+          case WIFI_AUTH_WEP: auth = "WEP"; break;
+          case WIFI_AUTH_WPA_PSK: auth = "WPA_PSK"; break;
+          case WIFI_AUTH_WPA2_PSK: auth = "WPA2_PSK"; break;
+          case WIFI_AUTH_WPA_WPA2_PSK: auth = "WPA_WPA2_PSK"; break;
+          case WIFI_AUTH_WPA2_ENTERPRISE: auth = "WPA2_ENTERPRISE"; break;
+          default: break;
+        }
+        json += String(",\"authmode\":\"") + auth + "\"}";
+      }
+      json += "]}";
+      WiFi.scanDelete();
+      sendJson(request, json);
+    });
+
+    // network settings (restart needed): /network?hostname=..&ssid=..&password=..&staticIp=1&ip=..&subnet=..&gateway=..&dns=..
+    webServer.on("/network", HTTP_GET, [](AsyncWebServerRequest *request){
+      if (!request->hasArg("ssid") || request->arg("ssid").isEmpty()) {
+        request->send(400, "application/json", "{\"error\":\"ssid missing\"}");
+        return;
+      }
+      WifiSettings w = settingsManager.getWifiSettings();
+      w.ssid = request->arg("ssid");
+      if (request->hasArg("password") && request->arg("password") != "********")
+        w.password = request->arg("password");
+      if (request->hasArg("hostname")) {
+        String hostname = request->arg("hostname");
+        hostname.trim();
+        if (!hostname.isEmpty()) w.hostname = hostname;
+      }
+      w.staticIp = request->hasArg("staticIp");
+      w.ip = request->arg("ip");
+      w.subnet = request->arg("subnet");
+      w.gateway = request->arg("gateway");
+      w.dns = request->arg("dns");
+      IPAddress check;
+      if (w.staticIp && !(check.fromString(w.ip) && check.fromString(w.subnet) && check.fromString(w.gateway))) {
+        request->send(400, "application/json", "{\"error\":\"invalid static IP configuration\"}");
+        return;
+      }
+      settingsManager.saveWifiSettings(w);
+      if (!request->hasArg("noReboot")) // the web interface saves other settings right after this and restarts with them
+        shouldReboot = true;
+      sendJson(request, "{\"ok\":true}");
     });
 
     // change a LED setting without restart: /api/led?setting=touchRingColor&value=3
@@ -676,6 +761,7 @@ void startWebserver(){
       {
         Serial.println("Save settings");
         AppSettings settings = settingsManager.getAppSettings();
+        settings.mqttEnabled = request->hasArg("mqttEnabled");
         settings.mqttServer = request->arg("mqtt_server");
         settings.mqttUsername = request->arg("mqtt_username");
         settings.mqttPassword = request->arg("mqtt_password");
@@ -1122,7 +1208,9 @@ void setup()
     currentMode = Mode::scan;
     if (initWifi()) {
       startWebserver();
-      if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
+      if (!settingsManager.getAppSettings().mqttEnabled) {
+        mqttConfigValid = false; // MQTT switched off
+      } else if (settingsManager.getAppSettings().mqttServer.isEmpty()) {
         mqttConfigValid = false;
         notifyClients("Error: No MQTT Broker is configured! Please go to settings and enter your server URL + user credentials.");
       } else {
@@ -1197,7 +1285,7 @@ void loop()
     }
 
     // reconnect mqtt if down
-    if (!settingsManager.getAppSettings().mqttServer.isEmpty()) {
+    if (settingsManager.getAppSettings().mqttEnabled && !settingsManager.getAppSettings().mqttServer.isEmpty()) {
       if (!mqttClient.connected() && (currentMillis - mqttReconnectPreviousMillis >= 30000ul)) {
         connectMqttClient();
         mqttReconnectPreviousMillis = currentMillis;
