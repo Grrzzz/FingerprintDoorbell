@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-  <link rel="stylesheet" href="/style.css?v=60">
+  <link rel="stylesheet" href="/style.css?v=61">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -73,8 +73,9 @@
   <main class="content">
 
     <!-- ================= OVERVIEW ================= -->
-    <section class="view" id="view-overview">
-      <header><h1>Overview</h1><p>Live status of your doorbell.</p></header>
+    <section class="view container" id="view-overview">
+      <div class="container-header"><div class="container-title">Overview</div><div class="page-sub">Live status of your doorbell.</div></div>
+      <div class="container-content">
 
       <div class="card hero">
         <div class="sensor-disc" id="heroDisc" data-seq="3">
@@ -113,30 +114,36 @@
         <p class="sub">Latest messages from the device.</p>
         <div class="log" id="log"><div class="empty">No messages yet.</div></div>
       </div>
+      </div>
     </section>
 
     <!-- ================= FINGERPRINTS ================= -->
-    <section class="view" id="view-fingerprints" hidden>
-      <header class="with-action">
-        <div><h1>Fingerprints</h1><p id="fpSub">Stored on the sensor.</p></div>
+    <section class="view container" id="view-fingerprints" hidden>
+      <div class="container-header with-action">
+        <div><div class="container-title">Fingerprints</div><div class="page-sub" id="fpSub">Stored on the sensor.</div></div>
         <div class="header-tools">
           <div class="search-row"><svg><use href="#i-search"/></svg><input id="fpSearch" type="search" placeholder="Quicksearch" autocomplete="off" aria-label="Quicksearch fingerprints"></div>
           <button class="btn" id="btnAdd"><svg><use href="#i-plus"/></svg>Add fingerprint</button>
         </div>
-      </header>
+      </div>
+      <div class="container-content">
       <div id="fingerGrid" class="finger-grid"></div>
+      </div>
     </section>
 
     <!-- ================= LED & RING ================= -->
-    <section class="view" id="view-led" hidden>
-      <header><h1>LED &amp; Ring</h1><p>Changes apply instantly. Not all R503 sensor versions support all colors, older ones only red, blue and purple.</p></header>
+    <section class="view container" id="view-led" hidden>
+      <div class="container-header"><div class="container-title">LED &amp; Ring</div><div class="page-sub">Changes apply instantly. Not all R503 sensor versions support all colors, older ones only red, blue and purple.</div></div>
+      <div class="container-content">
 
       <div id="ledCards"></div>
+      </div>
     </section>
 
     <!-- ================= SYSTEM INFO ================= -->
-    <section class="view sys-info" id="view-system-info" hidden>
-      <header><h1>Info</h1><p>The essentials at a glance, all details underneath.</p></header>
+    <section class="view container sys-info" id="view-system-info" hidden>
+      <div class="container-header"><div class="container-title">Info</div><div class="page-sub">The essentials at a glance, all details underneath.</div></div>
+      <div class="container-content">
 
       <div class="sys-stats">
         <div class="stat"><div class="stat-label">Status</div><div class="stat-value small"><output class="badge" id="iStatus">-</output></div></div>
@@ -203,11 +210,13 @@
           </div>
         </section>
       </div>
+      </div>
     </section>
 
     <!-- ================= UPDATE ================= -->
-    <section class="view" id="view-system-update" hidden>
-      <header><h1>Update</h1><p>Install new firmware and WebUI versions.</p></header>
+    <section class="view container" id="view-system-update" hidden>
+      <div class="container-header"><div class="container-title">Update</div><div class="page-sub">Install new firmware and WebUI versions.</div></div>
+      <div class="container-content">
       <div class="sys-update">
         <div class="stat-row">
           <div class="stat"><div class="stat-label">Installed</div><div class="stat-value" id="sysVersion2">-</div></div>
@@ -242,21 +251,25 @@
           </div>
         </div>
       </div>
+      </div>
     </section>
 
     <!-- ================= REBOOT ================= -->
-    <section class="view" id="view-system-reboot" hidden>
-      <header><h1>Reboot</h1><p>Restart the device without losing any settings.</p></header>
+    <section class="view container" id="view-system-reboot" hidden>
+      <div class="container-header"><div class="container-title">Reboot</div><div class="page-sub">Restart the device without losing any settings.</div></div>
+      <div class="container-content">
       <div class="card">
         <h2>Reboot device</h2>
         <p class="sub">The web interface is unavailable for about 30 seconds while the device restarts.</p>
         <button class="btn" id="btnReboot">Reboot now</button>
       </div>
+      </div>
     </section>
 
     <!-- ================= SETUP ================= -->
-    <section class="view" id="view-system-setup" hidden>
-      <header><h1>Setup</h1><p>MQTT, Home Assistant, time, gong, sensor pairing and resets. Saving restarts the device.</p></header>
+    <section class="view container" id="view-system-setup" hidden>
+      <div class="container-header"><div class="container-title">Setup</div><div class="page-sub">MQTT, Home Assistant, time, gong, sensor pairing and resets. Saving restarts the device.</div></div>
+      <div class="container-content">
 
       <div class="card">
         <h2>MQTT</h2>
@@ -325,6 +338,7 @@
           <div><div class="t">Factory reset</div><div class="d">Deletes fingerprints, settings and the Wi-Fi configuration.</div></div>
           <button class="btn danger" id="btnFactory">Factory reset</button>
         </div>
+      </div>
       </div>
     </section>
 
@@ -406,6 +420,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=60"></script>
+<script src="/app.js?v=61"></script>
 </body>
 </html>
