@@ -76,82 +76,227 @@ static void closeDownload(HTTPClient& http, WiFiClientSecure*& client) {
   if (client) { delete client; client = nullptr; }
 }
 
-// streams the open response into the update partition (command: U_FLASH or U_SPIFFS)
-static bool installStream(HTTPClient& http, int length, int command, int percentFrom, int percentTo, String& error) {
-  if (length <= 0) { error = "unknown file size"; return false; }
-  trace(String("Update.begin ") + length);
-  if (!Update.begin(length, command)) { error = String("no space for the update: ") + Update.errorString(); return false; }
-  WiFiClient* stream = http.getStreamPtr();
-  uint8_t buffer[1024];
-  int written = 0;
-  unsigned long lastData = millis();
-  while (written < length) {
-    int available = stream->available();
-    if (available > 0) {
-      int n = stream->readBytes(buffer, min(min(available, (int)sizeof(buffer)), length - written));
-      if (n <= 0) continue;
-      if ((int)Update.write(buffer, n) != n) { error = String("write failed: ") + Update.errorString(); Update.abort(); return false; }
-      written += n;
-      lastData = millis();
-      percent = percentFrom + (int)((long)(percentTo - percentFrom) * written / length);
-      if ((written & 0x3FFFF) < 1024) trace(String("written ") + written);
-    } else {
-      if (millis() - lastData > 20000 || !http.connected()) { error = "connection lost during download"; Update.abort(); return false; }
-      delay(5);
-    }
+// Streaming reader for update.zip: spiffs.bin first, then firmware.bin, both STORED (not compressed).
+// Every chunk goes straight into the update partition, nothing is buffered, so it needs no extra heap.
+static bool rawFirmware = false;
+static bool rawBegun = false;
+
+struct ZipInstaller {
+  enum Phase { HEADER, NAME, EXTRA, DATA, DONE, FAILED };
+  Phase phase = HEADER;
+  uint8_t hdr[30];
+  uint8_t have = 0;
+  uint32_t need = 0;
+  uint16_t nameLen = 0, extraLen = 0;
+  uint32_t dataSize = 0;
+  char name[16];
+  uint8_t nameFill = 0;
+  int stage = 0;        // 0 nothing, 1 filesystem written, 2 firmware written
+  int current = -2;     // -2 none, -1 skip entry, else U_SPIFFS / U_FLASH
+  uint32_t consumed = 0;
+  uint32_t total = 0;
+  String error;
+
+  bool fail(const String& e) {
+    error = e;
+    phase = FAILED;
+    if (Update.isRunning()) Update.abort();
+    if (stage == 0 || current == U_SPIFFS) SPIFFS.begin();
+    return false;
   }
-  if (!Update.end()) { error = String("image rejected: ") + Update.errorString(); return false; }
-  return true;
-}
+
+  bool beginEntry() {
+    if (strcmp(name, "spiffs.bin") == 0) {
+      if (stage != 0) return fail("spiffs.bin must come first in update.zip");
+      current = U_SPIFFS;
+      setState("filesystem", "Installing the web interface");
+      SPIFFS.end();
+    } else if (strcmp(name, "firmware.bin") == 0) {
+      if (stage != 1) return fail("update.zip needs spiffs.bin before firmware.bin");
+      current = U_FLASH;
+      setState("firmware", "Installing the firmware");
+    } else {
+      current = -1;
+      return true;
+    }
+    if (dataSize == 0) return fail(String(name) + " is empty");
+    if (!Update.begin(dataSize, current)) return fail(String("no space for ") + name + ": " + Update.errorString());
+    return true;
+  }
+
+  bool finishEntry() {
+    if (current == U_FLASH || current == U_SPIFFS) {
+      if (!Update.end()) return fail(String("image rejected: ") + Update.errorString());
+      stage++;
+      if (current == U_SPIFFS) SPIFFS.begin();
+    }
+    current = -2;
+    phase = HEADER;
+    have = 0;
+    return true;
+  }
+
+  bool feed(const uint8_t* d, size_t n) {
+    consumed += n;
+    if (total) percent = 2 + (int)((uint64_t)96 * consumed / total);
+    while (n > 0 && phase != DONE) {
+      if (phase == FAILED) return false;
+      if (phase == HEADER) {
+        size_t k = min((size_t)(30 - have), n);
+        memcpy(hdr + have, d, k);
+        have += k; d += k; n -= k;
+        if (have < 30) break;
+        uint32_t sig = hdr[0] | hdr[1] << 8 | hdr[2] << 16 | (uint32_t)hdr[3] << 24;
+        if (sig == 0x02014b50 || sig == 0x06054b50) { phase = DONE; break; }
+        if (sig != 0x04034b50) return fail("this is not a valid update.zip");
+        if ((hdr[6] | hdr[7] << 8) & 8) return fail("update.zip entries must not use data descriptors");
+        if ((hdr[8] | hdr[9] << 8) != 0) return fail("update.zip must be stored without compression");
+        dataSize = hdr[18] | hdr[19] << 8 | hdr[20] << 16 | (uint32_t)hdr[21] << 24;
+        nameLen = hdr[26] | hdr[27] << 8;
+        extraLen = hdr[28] | hdr[29] << 8;
+        nameFill = 0;
+        need = nameLen;
+        phase = NAME;
+      }
+      if (phase == NAME) {
+        while (need > 0 && n > 0) {
+          if (nameFill < sizeof(name) - 1) name[nameFill++] = (char)*d;
+          d++; n--; need--;
+        }
+        if (need > 0) break;
+        name[nameFill] = 0;
+        if (nameLen >= sizeof(name)) name[0] = 0;
+        need = extraLen;
+        phase = EXTRA;
+      }
+      if (phase == EXTRA) {
+        size_t k = min((size_t)need, n);
+        d += k; n -= k; need -= k;
+        if (need > 0) break;
+        if (!beginEntry()) return false;
+        need = dataSize;
+        phase = DATA;
+        if (need == 0 && !finishEntry()) return false;
+      }
+      if (phase == DATA && n > 0) {
+        size_t k = min((size_t)need, n);
+        if (current != -1 && Update.write((uint8_t*)d, k) != k) return fail(String("write failed: ") + Update.errorString());
+        d += k; n -= k; need -= k;
+        if (need == 0 && !finishEntry()) return false;
+      }
+    }
+    return true;
+  }
+
+  bool complete() { return phase != FAILED && stage == 2; }
+};
+
+static ZipInstaller* zip = nullptr;
 
 static void updateTask(void*) {
   String error;
   HTTPClient http;
   WiFiClientSecure* client = nullptr;
   int length = 0;
-  String base = String(RELEASE_BASE) + tagToInstall + "/";
+  String url = String(RELEASE_BASE) + tagToInstall + "/update.zip";
   bool ok = false;
+  ZipInstaller* z = new ZipInstaller();
 
   do {
+    if (!z) { error = "not enough memory"; break; }
     if (time(nullptr) < 1700000000) { error = "device time not set yet (NTP), try again in a minute"; break; }
-
-    // check that both files can be downloaded before anything is overwritten
-    setState("checking", "Checking the release files");
-    percent = 2;
-    if (!openDownload(base + "firmware.bin", http, client, length, error)) { error = "firmware.bin: " + error; break; }
-    closeDownload(http, client);
-    percent = 5;
-    if (!openDownload(base + "spiffs.bin", http, client, length, error)) { error = "spiffs.bin: " + error; break; }
-    trace("spiffs.bin opened");
-
-    // filesystem first: a failure afterwards can simply be retried, the installed firmware stays the same
-    setState("filesystem", "Installing the web interface");
-    trace("SPIFFS.end");
-    SPIFFS.end();
-    bool fsOk = installStream(http, length, U_SPIFFS, 5, 50, error);
-    closeDownload(http, client);
-    if (!fsOk) { error = "web interface: " + error; SPIFFS.begin(); break; }
-
-    setState("firmware", "Installing the firmware");
-    if (!openDownload(base + "firmware.bin", http, client, length, error)) { error = "firmware.bin: " + error; break; }
-    bool fwOk = installStream(http, length, U_FLASH, 50, 98, error);
-    closeDownload(http, client);
-    if (!fwOk) { error = "firmware: " + error; break; }
+    setState("checking", "Downloading update.zip");
+    percent = 1;
+    if (!openDownload(url, http, client, length, error)) { error = "update.zip: " + error; break; }
+    if (length <= 0) { error = "update.zip: unknown file size"; break; }
+    z->total = length;
+    WiFiClient* stream = http.getStreamPtr();
+    uint8_t buffer[1024];
+    unsigned long lastData = millis();
+    while (z->consumed < (uint32_t)length && z->phase != ZipInstaller::DONE) {
+      int available = stream->available();
+      if (available > 0) {
+        int n = stream->readBytes(buffer, min(min(available, (int)sizeof(buffer)), length - (int)z->consumed));
+        if (n <= 0) continue;
+        lastData = millis();
+        if (!z->feed(buffer, n)) break;
+      } else {
+        if (millis() - lastData > 20000 || !http.connected()) { error = "connection lost during download"; z->fail(error); break; }
+        delay(5);
+      }
+    }
+    if (z->phase == ZipInstaller::FAILED) { error = z->error; break; }
+    if (!z->complete()) { error = "update.zip is incomplete"; break; }
     ok = true;
   } while (false);
 
   closeDownload(http, client);
+  delete z;
   if (ok) {
     percent = 100;
     setState("restarting", "Update installed, restarting");
     delay(2500); // let the web interface pick up the state
     shouldReboot = true;
   } else {
+    if (Update.isRunning()) Update.abort();
     notifyClients("Update failed: " + error);
     setState("error", error);
     running = false;
   }
   vTaskDelete(NULL);
+}
+
+// manual upload (POST /api/update/upload): update.zip or a plain firmware.bin
+bool selfUpdateUploadChunk(const String& filename, size_t index, uint8_t* data, size_t len, bool final, size_t total, String& error) {
+  if (index == 0) {
+    if (running) { error = "an update is already running"; return false; }
+    String lower = filename;
+    lower.toLowerCase();
+    if (!lower.endsWith(".zip") && !lower.endsWith(".bin")) { error = "choose update.zip or firmware.bin"; return false; }
+    if (zip) { delete zip; zip = nullptr; }
+    zip = new ZipInstaller();
+    if (!zip) { error = "not enough memory"; return false; }
+    zip->total = total;
+    rawFirmware = lower.endsWith(".bin");
+    rawBegun = false;
+    running = true;
+    percent = 0;
+    setState("upload", "Receiving the update");
+  }
+  if (!zip) { error = message.length() ? message : "no update in progress"; return false; }
+  if (rawFirmware) {
+    if (!rawBegun) {
+      if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) { error = String("no space for the update: ") + Update.errorString(); return false; }
+      rawBegun = true;
+      setState("firmware", "Installing the firmware");
+    }
+    zip->consumed += len;
+    if (total) percent = (int)((uint64_t)98 * zip->consumed / total);
+    if (Update.write(data, len) != len) { error = String("write failed: ") + Update.errorString(); Update.abort(); return false; }
+    if (final && !Update.end(true)) { error = String("image rejected: ") + Update.errorString(); return false; }
+    if (final) zip->stage = 2;
+  } else {
+    if (!zip->feed(data, len)) { error = zip->error; return false; }
+  }
+  return true;
+}
+
+// called when the upload request ends; true if everything was installed (the caller reboots)
+bool selfUpdateUploadFinish(String& error) {
+  bool ok = zip && zip->complete() && !(rawFirmware && !rawBegun);
+  if (!ok) {
+    if (error.length() == 0) error = (zip && zip->error.length()) ? zip->error : "the upload is not a complete update";
+    if (Update.isRunning()) Update.abort();
+    SPIFFS.begin();
+    setState("error", error);
+    running = false;
+  } else {
+    percent = 100;
+    setState("restarting", "Update installed, restarting");
+  }
+  delete zip;
+  zip = nullptr;
+  return ok;
 }
 
 bool selfUpdateRunning() {

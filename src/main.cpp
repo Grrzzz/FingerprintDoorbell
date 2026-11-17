@@ -6,7 +6,6 @@
 #include <DNSServer.h>
 #include <time.h>
 #include <ESPAsyncWebServer.h>
-#include <AsyncElegantOTA.h>
 #include <SPIFFS.h>
 #include <PubSubClient.h>
 #include "FingerprintManager.h"
@@ -621,6 +620,21 @@ void startWebserver(){
       sendJson(request, "{\"ok\":true}");
     });
 
+    // manual update: POST update.zip (or firmware.bin) to /api/update/upload (the one POST endpoint, it carries a file)
+    webServer.on("/api/update/upload", HTTP_POST, [](AsyncWebServerRequest *request){
+      String error = request->_tempObject ? String((const char*)request->_tempObject) : String();
+      bool ok = selfUpdateUploadFinish(error);
+      if (request->_tempObject) { free(request->_tempObject); request->_tempObject = nullptr; }
+      if (!ok) { request->send(400, "text/plain", error); return; }
+      sendJson(request, "{\"ok\":true}");
+      shouldReboot = true;
+    }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+      if (request->_tempObject) return; // an earlier chunk failed, skip the rest
+      String error;
+      if (index == 0 && currentMode == Mode::enroll) error = "finish or cancel the enrollment first";
+      else if (!selfUpdateUploadChunk(filename, index, data, len, final, request->contentLength(), error)) {}
+      if (error.length()) request->_tempObject = strdup(error.c_str());
+    });
     // how the flash area for names, schedules and settings is used (for the chart on the System page)
     webServer.on("/api/storage", HTTP_GET, [](AsyncWebServerRequest *request){
       sendJson(request, fingerManager.storageDetailsJson());
@@ -770,9 +784,6 @@ void startWebserver(){
   });
 
 
-  // Enable Over-the-air updates at http://<IPAddress>/update
-  AsyncElegantOTA.begin(&webServer);
-  
   // Start server
   webServer.begin();
 
