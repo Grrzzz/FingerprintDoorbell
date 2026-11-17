@@ -1082,3 +1082,55 @@ a.nav-sub-item {
   text-decoration: none;
   box-sizing: border-box;
 }
+
+/* hint for a newer release: info icon at the version, dot at the Update menu item (and at the closed System group) */
+.foot-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.update-hint {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.update-hint[hidden] {
+  display: none;
+}
+
+.update-hint svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.has-update {
+  position: relative;
+}
+
+.has-update::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.nav-parent.has-update::after {
+  display: none;
+}
+
+.nav-group:not(.open) > .nav-parent.has-update::after {
+  display: inline-block;
+}

@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=66">
+  <link rel="stylesheet" href="/style.css?v=67">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -31,7 +31,7 @@
 <div class="app" id="app">
   <aside class="sidebar" id="rail">
     <div class="brand">
-      <div class="brand-logo"><svg><use href="#i-fp"/></svg></div>
+      <div class="brand-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect width="64" height="64" rx="19" fill="url(#brandGrad)"/><g transform="translate(12 12) scale(1.6667)" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11a3 3 0 0 0-3 3c0 2.5.5 4.5 1.5 6.5"/><path d="M12 7a7 7 0 0 0-7 7c0 2 .3 3.6.9 5"/><path d="M12 3a11 11 0 0 0-11 11"/><path d="M12 3a11 11 0 0 1 11 11c0 1.8-.2 3-.5 4.5"/><path d="M12 7a7 7 0 0 1 7 7c0 2-.3 3.8-.8 5.5"/><path d="M12 11a3 3 0 0 1 3 3c0 1.8-.2 3.3-.6 4.8"/></g></svg></div>
       <div class="brand-text">
         <h1 class="brand-title" id="brandName">FingerprintDoorbell</h1>
         <div class="brand-sub" id="brandVersion">&nbsp;</div>
@@ -44,7 +44,7 @@
         <li><a class="nav-item" href="#led" data-view="led"><svg><use href="#i-led"/></svg>LED &amp; Ring</a></li>
       </ul>
       <div class="nav-group" id="navSystem">
-        <button type="button" class="nav-item nav-parent" id="navSystemBtn" aria-expanded="false" aria-controls="navSystemSub"><svg><use href="#i-cog"/></svg>System<i class="nav-dot" id="navDot" hidden></i><svg class="chev" viewBox="0 0 24 24"><use href="#i-chev"/></svg></button>
+        <button type="button" class="nav-item nav-parent" id="navSystemBtn" aria-expanded="false" aria-controls="navSystemSub"><svg><use href="#i-cog"/></svg>System<svg class="chev" viewBox="0 0 24 24"><use href="#i-chev"/></svg></button>
         <ul class="nav-sub" id="navSystemSub">
           <li><a class="nav-sub-item" href="#system/info" data-view="system-info">Info</a></li>
           <li><a class="nav-sub-item" href="#system/setup" data-view="system-setup">Setup</a></li>
@@ -411,6 +411,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=66"></script>
+<script src="/app.js?v=67"></script>
 </body>
 </html>

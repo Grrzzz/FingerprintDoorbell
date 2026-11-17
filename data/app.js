@@ -107,7 +107,9 @@
   }
 
   function updateNavDot() {
-    $('navDot').hidden = !(newRelease && !$('navSystem').classList.contains('open'));
+    $('navSystemBtn').classList.toggle('has-update', newRelease);
+    var u = document.querySelector('.nav-sub-item[data-view="system-update"]');
+    if (u) u.classList.toggle('has-update', newRelease);
   }
   // ---------- release check (the browser asks GitHub, the device itself needs no internet access) ----------
   var RELEASES_API = 'https://api.github.com/repos/Grrzzz/FingerprintDoorbell/releases/latest';
