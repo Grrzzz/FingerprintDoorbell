@@ -265,7 +265,7 @@ Your Wi-Fi, MQTT settings, fingerprints and sensor pairing are kept, also when c
 
 Install [Visual Studio Code with the PlatformIO extension](https://platformio.org/platformio-ide), clone the repository and open it. In the PlatformIO tasks of `esp32doit-devkit-v1` choose **Build** (creates `firmware.bin`) and **Build Filesystem Image** (creates `spiffs.bin` with the web interface), then **Upload** and **Upload Filesystem Image**.
 
-The libraries are downloaded automatically. ESP Async WebServer is pinned to a Git commit of version 1.2.3 because the registry package no longer exists; that version leaves out `std::regex` (about 180 KB), which the firmware needs to fit next to the one-click update. Do not replace it with ESP32Async 3.x. From the command line: `python -m platformio run` and `python -m platformio run -t buildfs`.
+The platform (`espressif32@6.13.0`) and the libraries are downloaded automatically. The partition table is fixed in `partitions.csv` and must stay the same as in every earlier release. From the command line: `python -m platformio run` and `python -m platformio run -t buildfs`.
 
 ## Credits
 

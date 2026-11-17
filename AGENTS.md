@@ -4,7 +4,7 @@ Guide for AI coding agents (and humans) working on this repository. It is the fo
 
 ## Stack at a glance
 
-- ESP32 (`esp32doit-devkit-v1`), Arduino framework, PlatformIO (`espressif32@3.5.0`, arduino-esp32 1.0.6). C++11 style of the Arduino core, no exceptions.
+- ESP32 (`esp32doit-devkit-v1`), Arduino framework, PlatformIO (`espressif32@6.13.0`, arduino-esp32 2.x). C++ of the Arduino core, no exceptions.
 - Web server: ESP Async WebServer. The web interface is a plain HTML/CSS/JS single page app (no framework, no build step, no external requests) served from SPIFFS.
 - MQTT with PubSubClient, fingerprint sensor with the Adafruit Fingerprint library, settings in NVS (`Preferences`).
 - No unit tests. Verify firmware changes by building, UI changes with the virtual device (see [Testing](#testing)).
@@ -19,8 +19,8 @@ Guide for AI coding agents (and humans) working on this repository. It is the fo
 | `src/HomeAssistantDiscovery.*` | table of Home Assistant entities and the discovery/state publishing |
 | `src/SelfUpdate.*`, `src/GithubRoots.h` | one-click update (HTTPS download of `update.zip` from GitHub releases), manual upload with the ZIP reader, and the root certificates |
 | `data/` | web interface: `app.html`, `app.js`, `style.css`, plus `wificonfig.html` (Wi-Fi setup mode, still templated by the server) |
-| `lib/` | libraries that are installed manually (the registry no longer resolves ESP Async WebServer), only a README is tracked |
-| `lib_patches/` | patches that must be applied to those libraries |
+| `lib/` | private libraries (none at the moment), only a README is tracked |
+| `partitions.csv` | the partition table every released version uses, see below |
 | `tools/` | virtual device, screenshot script and `make_update_zip.py` (builds the release `update.zip`) |
 | `doc/` | images for the README, `bootloader.zip` for esptool flashing |
 
@@ -32,11 +32,12 @@ pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 ```
 
 - PlatformIO itself: `python -m pip install --user platformio`, then `python -m platformio run` (the `pio` command is often not on the PATH on Windows). The first build downloads the toolchain (several hundred MB).
-- ESP Async WebServer is pinned to the me-no-dev Git commit `f71e3d4` (version 1.2.3) in `platformio.ini`, because the registry package `me-no-dev/ESP Async WebServer` no longer exists and the GitHub repository now points to the incompatible ESP32Async 3.x. That commit already guards `std::regex` with `ASYNCWEBSERVER_REGEX`, so no patch is needed. `lib_patches/ESPAsyncWebServer-no-regex.patch` is only for older copies without that guard. Without the guard `std::regex` is linked in and the firmware is about 180 KB larger, which no longer fits next to the one-click update. Never let PlatformIO pick a 3.x version.
+- Platform `espressif32@6.13.0` (arduino-esp32 2.x) with the maintained `esp32async/ESPAsyncWebServer@^3.12.1` and its AsyncTCP. Both come from the registry, no patches. The old stack (`espressif32@3.5.0` with ESP Async WebServer 1.2.3) crashed the 2.2 firmware on a real device about every 75 seconds with `assertion "new_rcv_ann_wnd <= 0xffff"` in lwIP (`tcp_update_rcv_ann_wnd`), which is why 2.2 was withdrawn once. The new stack fixed it, checked on a device for 5+ minutes.
+- Differences of the new library that matter: the `/events` route answers 404 unless the request has `Accept: text/event-stream` (browsers send it, `curl` and scripts must add it), and the manual upload handler is the usual `onUpload` callback.
 - The Adafruit Fingerprint library does not define the colors 4-7 of newer sensors. `FingerprintManager.h` defines `FINGERPRINT_LED_GREEN`/`YELLOW`/`CYAN`/`WHITE` itself (`#ifndef`), keep that.
-- **Size budget:** the app partition holds 1,310,720 bytes. The firmware currently uses about 87 % (2.2: 1,135,366 bytes). Check the `Flash:` line after every build and do not add large dependencies without removing something. To see what takes the space, link with `-Wl,-Map,out.map` and sum the sections per archive.
+- **Size budget:** the app partition holds 1,310,720 bytes. The firmware currently uses about 89 % (2.2: 1,169,333 bytes). Check the `Flash:` line after every build and do not add large dependencies without removing something. To see what takes the space, link with `-Wl,-Map,out.map` and sum the sections per archive.
 - **Filesystem image:** SPIFFS partition at `0x290000`, 1,507,328 bytes (the image is always full size). Firmware at `0x10000`.
-- Never change the partition table: devices in the field are updated over the air, which cannot move partitions.
+- Never change the partition table: devices in the field are updated over the air, which cannot move partitions. `partitions.csv` (set with `board_build.partitions`) reproduces the table of the old platform exactly: app0 `0x10000` and app1 `0x150000` (1280 KB each), SPIFFS `0x290000` (0x170000). The default table of the new platform has a smaller SPIFFS and a coredump partition and must not be used. After a platform change compare `.pio/build/*/partitions.bin` with `python .../tools/gen_esp32part.py`.
 
 ## Versioning, releases and the one-click update
 
@@ -50,7 +51,7 @@ pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 
 1. Set `VersionInfo` in `src/main.cpp` to `X.Y Grrzzz` and bump the cache parameter in `data/app.html` if the web interface changed. **The version must be changed before building**, an old build still carries the old string and would offer itself as an update forever.
 2. Update `README.md` (what is new, screenshots from the mock) and commit everything. Do not build from a dirty tree.
-3. Build: check first that PlatformIO, the libraries in `lib/` (with the patch) and, for publishing, the `gh` CLI or a browser session are available; without them only steps 1 and 2 can be done, say so instead of tagging an unbuilt commit. Then `pio run`, `touch`/save `src/main.cpp` if the version looks stale, then `pio run -t buildfs`.
+3. Build: check first that PlatformIO and, for publishing, the `gh` CLI or a browser session are available; without them only steps 1 and 2 can be done, say so instead of tagging an unbuilt commit. Then `pio run`, `touch`/save `src/main.cpp` if the version looks stale, then `pio run -t buildfs`.
 4. `python tools/make_update_zip.py vX.Y` checks that `VersionInfo` matches the tag and is inside `firmware.bin`, builds `update.zip` and prints the SHA-256 of all three files.
 5. Tag `vX.Y` (annotated) on the commit that was built. A commit after the build makes the binary differ from the tag.
 6. After the owner's OK: push the release branch (the remote currently has only `master`; feature branches are merged into it first, ask the owner) and the tag, create the GitHub release (title `X.Y Grrzzz`) with `update.zip`, `firmware.bin`, `spiffs.bin`. The device asks `releases/latest`, so do not mark a test release as latest.
