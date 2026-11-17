@@ -67,7 +67,7 @@ The Update page has a file picker for `update.zip` (or a plain `firmware.bin`). 
 curl -F "file=@update.zip" http://<device>/api/update/upload
 ```
 
-The device unpacks the stream, installs the filesystem and then the firmware, answers `{"ok":true}` and restarts (about 30 s). This is the only `POST` endpoint of the firmware, it exists because it carries a file. A plain `firmware.bin` installs the firmware only, the web interface stays as it is. **Do not flash devices that are not yours or production devices without the owner's approval.**
+The device unpacks the stream, installs the filesystem and then the firmware, answers `{"ok":true}` and restarts (about 30 s). This is the only `POST` endpoint of the firmware, it exists because it carries a file. A single `firmware.bin` or `spiffs.bin` also works (type detected from the file name, a `.bin` with another name is taken as firmware if it starts with 0xE9); it installs only that part. **Do not flash devices that are not yours or production devices without the owner's approval.**
 ## Web interface rules (`data/`)
 
 - Vanilla JS in one IIFE (`app.js`), DOM built with the `el(tag, cls, text)` helper, no `innerHTML` with data from the device (names are user input).

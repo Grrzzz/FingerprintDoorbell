@@ -185,7 +185,7 @@
     function validate() {
       var f = file.files[0];
       if (!f) { show(null); btn.disabled = true; return; }
-      var err = !/\.(zip|bin)$/i.test(f.name) ? 'Not a .zip or .bin'
+      var err = !/\.(zip|bin|spiffs?)$/i.test(f.name) ? 'Not a .zip or .bin'
         : /\s/.test(f.name) ? 'No spaces in the name'
         : f.size <= 0 ? 'Empty file'
         : f.size > MAX ? 'Too large' : '';

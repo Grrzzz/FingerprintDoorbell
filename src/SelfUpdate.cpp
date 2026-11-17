@@ -7,6 +7,7 @@
 #include <time.h>
 #include "GithubRoots.h"
 #include <esp_heap_caps.h>
+#include <esp_partition.h>
 
 extern bool shouldReboot;
 void notifyClients(String message);
@@ -78,7 +79,7 @@ static void closeDownload(HTTPClient& http, WiFiClientSecure*& client) {
 
 // Streaming reader for update.zip: spiffs.bin first, then firmware.bin, both STORED (not compressed).
 // Every chunk goes straight into the update partition, nothing is buffered, so it needs no extra heap.
-static bool rawFirmware = false;
+static int rawTarget = -1; // -1 zip, else U_FLASH / U_SPIFFS for a single image
 static bool rawBegun = false;
 
 struct ZipInstaller {
@@ -246,35 +247,54 @@ static void updateTask(void*) {
   vTaskDelete(NULL);
 }
 
-// manual upload (POST /api/update/upload): update.zip or a plain firmware.bin
+// manual upload (POST /api/update/upload): update.zip, or a single image (firmware.bin / spiffs.bin)
+// a plain .bin is recognized by its name ("spiff"/"filesystem" = web interface, "firmware" = firmware),
+// any other name by the image header (firmware starts with 0xE9)
 bool selfUpdateUploadChunk(const String& filename, size_t index, uint8_t* data, size_t len, bool final, size_t total, String& error) {
   if (index == 0) {
     if (running) { error = "an update is already running"; return false; }
     String lower = filename;
     lower.toLowerCase();
-    if (!lower.endsWith(".zip") && !lower.endsWith(".bin")) { error = "choose update.zip or firmware.bin"; return false; }
+    bool isZip = lower.endsWith(".zip");
+    if (!isZip && !lower.endsWith(".bin") && !lower.endsWith(".spiffs") && !lower.endsWith(".spiff")) { error = "choose a .zip, firmware.bin or spiffs.bin"; return false; }
+    rawTarget = -1;
+    if (!isZip) {
+      if (lower.indexOf("spiff") >= 0 || lower.indexOf("filesystem") >= 0) rawTarget = U_SPIFFS;
+      else if (lower.indexOf("firmware") >= 0) rawTarget = U_FLASH;
+      else if (len > 0 && data[0] == 0xE9) rawTarget = U_FLASH;
+      else { error = "cannot tell firmware from web interface, name the file firmware.bin or spiffs.bin"; return false; }
+    }
     if (zip) { delete zip; zip = nullptr; }
     zip = new ZipInstaller();
     if (!zip) { error = "not enough memory"; return false; }
     zip->total = total;
-    rawFirmware = lower.endsWith(".bin");
     rawBegun = false;
     running = true;
     percent = 0;
     setState("upload", "Receiving the update");
   }
   if (!zip) { error = message.length() ? message : "no update in progress"; return false; }
-  if (rawFirmware) {
+  if (rawTarget != -1) {
     if (!rawBegun) {
-      if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) { error = String("no space for the update: ") + Update.errorString(); return false; }
+      size_t size = UPDATE_SIZE_UNKNOWN;
+      if (rawTarget == U_SPIFFS) {
+        const esp_partition_t* p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+        if (!p) { error = "no filesystem partition"; return false; }
+        size = p->size;
+        SPIFFS.end();
+      }
+      if (!Update.begin(size, rawTarget)) { error = String("no space for the update: ") + Update.errorString(); if (rawTarget == U_SPIFFS) SPIFFS.begin(); return false; }
       rawBegun = true;
-      setState("firmware", "Installing the firmware");
+      setState(rawTarget == U_SPIFFS ? "filesystem" : "firmware", rawTarget == U_SPIFFS ? "Installing the web interface" : "Installing the firmware");
     }
     zip->consumed += len;
     if (total) percent = (int)((uint64_t)98 * zip->consumed / total);
     if (Update.write(data, len) != len) { error = String("write failed: ") + Update.errorString(); Update.abort(); return false; }
-    if (final && !Update.end(true)) { error = String("image rejected: ") + Update.errorString(); return false; }
-    if (final) zip->stage = 2;
+    if (final) {
+      if (!Update.end(true)) { error = String("image rejected: ") + Update.errorString(); return false; }
+      if (rawTarget == U_SPIFFS) SPIFFS.begin();
+      zip->stage = 2;
+    }
   } else {
     if (!zip->feed(data, len)) { error = zip->error; return false; }
   }
@@ -283,7 +303,7 @@ bool selfUpdateUploadChunk(const String& filename, size_t index, uint8_t* data, 
 
 // called when the upload request ends; true if everything was installed (the caller reboots)
 bool selfUpdateUploadFinish(String& error) {
-  bool ok = zip && zip->complete() && !(rawFirmware && !rawBegun);
+  bool ok = zip && zip->complete() && !(rawTarget != -1 && !rawBegun);
   if (!ok) {
     if (error.length() == 0) error = (zip && zip->error.length()) ? zip->error : "the upload is not a complete update";
     if (Update.isRunning()) Update.abort();
@@ -298,7 +318,6 @@ bool selfUpdateUploadFinish(String& error) {
   zip = nullptr;
   return ok;
 }
-
 bool selfUpdateRunning() {
   return running;
 }
