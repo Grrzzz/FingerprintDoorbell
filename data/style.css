@@ -771,9 +771,6 @@ button { font: inherit; color: inherit; }
 .fstate .sub { font-weight: 500; color: var(--text-secondary); }
 .finger-foot { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
 .finger-foot .spacer { flex: 1; }
-.btn.sm svg { width: 15px; height: 15px; }
-.icon-btn { width: 34px; padding: 6px 0; }
-.btn.ghost.set { background: var(--primary-soft); color: var(--primary); box-shadow: inset 0 0 0 1.5px var(--primary); }
 .switch.locked { opacity: .55; }
 .switch.locked input { cursor: not-allowed; }
 .switch.sm { width: 38px; height: 22px; }
@@ -868,21 +865,16 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px 
 .led-card .field { margin-bottom: 12px; }
 
 /* ================= buttons ================= */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 8px 14px; border: 0; border-radius: var(--input-radius); cursor: pointer;
-  background: var(--primary); color: #fff; font-weight: 600; text-decoration: none;
-  transition: filter .15s, transform .05s;
-}
-.btn:hover { filter: brightness(1.1); }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: .25; filter: grayscale(1); cursor: not-allowed; }
-.btn svg { width: 18px; height: 18px; }
-.btn.ghost { background: var(--surface); color: var(--text-main); }
-.btn.danger { background: var(--error); }
-.btn.danger.ghost { background: rgba(220, 38, 38, .1); color: var(--error); }
-.btn.sm { padding: 6px 12px; border-radius: var(--input-radius); font-size: 13.5px; }
-.btn.icon { padding: 6px 8px; }
+.button { display: inline-flex; gap: 8px; }
+.button svg { width: 18px; height: 18px; flex: none; }
+.button:active:not(:disabled) { transform: translateY(1px); }
+.button.danger { color: var(--error); background: rgba(220, 38, 38, .1); }
+.button.btn-action.danger { color: #fff; background: var(--error); }
+.button.sm { width: auto; padding: 6px 12px; font-size: 13.5px; }
+.button.sm svg { width: 15px; height: 15px; }
+.button.set { background: var(--primary-soft); color: var(--primary); box-shadow: inset 0 0 0 1.5px var(--primary); }
+.button.icon-btn { width: 34px; padding: 6px 0; }
+.dlg-actions .button, .save-bar .button { width: auto; min-width: 96px; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 
 .row-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
@@ -1024,7 +1016,6 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .sys-info .chip b { font-weight: 700; }
 .sys-info .sys-kv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px 20px; }
 .sys-info .sys-v { margin-top: 3px; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.sys-info .sys-body > .btn { align-self: flex-start; }
 /* update view (like the reference system-update) */
 .sys-update { display: flex; flex-direction: column; gap: 16px; }
 .sys-update .card { padding: 0; }
@@ -1038,9 +1029,7 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .state-box .state-text { color: var(--text-secondary); font-size: 0.9rem; }
 .state-box .state-text a { color: var(--primary); }
 .sys-spacer { height: 20px; }
-.btn-action { background: var(--primary); color: #fff; text-decoration: none; text-align: center; justify-content: center; }
 .btn-wide { width: 100%; padding: 10px; font-size: 1.1rem; box-sizing: border-box; }
-.btn[hidden] { display: none; }
 .sys-update .btn-wide:disabled { opacity: .5; cursor: not-allowed; }
 .sys-update .pick { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 16px; border: 2px dashed var(--border); border-radius: 1rem; background: var(--bg-card); text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
 .sys-update .pick:hover, .sys-update .pick:focus-visible { border-color: var(--primary); outline: none; }
@@ -1061,7 +1050,7 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .side-body { display: flex; flex-direction: column; gap: 16px; padding: 4px 20px 20px; }
 .sys-muted { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.45; }
 .btn-row { display: flex; gap: 8px; }
-.btn-row .btn { flex: 1 1 0; }
+.btn-row .button { flex: 1 1 0; width: auto; }
 .card.cfg-card, .card:has(> .side-body) { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
 .cfg .cfg-card .card-header { gap: 12px; }
 .cfg .cfg-card-title { display: inline-flex; align-items: center; }

@@ -551,7 +551,7 @@
   }
 
   function iconButton(id, label, cls, onclick, withText) {
-    var b = el('button', 'btn ghost sm ' + cls);
+    var b = el('button', 'button sm ' + cls);
     b.type = 'button';
     b.title = label;
     b.setAttribute('aria-label', label);

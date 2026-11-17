@@ -129,7 +129,7 @@
         <div><div class="container-title">Fingerprints</div><div class="page-sub" id="fpSub">Stored on the sensor.</div></div>
         <div class="header-tools">
           <div class="search-row"><svg><use href="#i-search"/></svg><input id="fpSearch" type="search" placeholder="Quicksearch" autocomplete="off" aria-label="Quicksearch fingerprints"></div>
-          <button class="btn" id="btnAdd"><svg><use href="#i-plus"/></svg>Add fingerprint</button>
+          <button class="button btn-action" id="btnAdd"><svg><use href="#i-plus"/></svg>Add fingerprint</button>
         </div>
       </div>
       <div class="container-content">
@@ -175,7 +175,7 @@
           <div class="sys-body">
             <div class="sys-hero-block"><div class="sys-hero-label">Version</div><div class="sys-hero-num" id="sysVersion">-</div></div>
             <div class="sys-kv-grid" id="fwKv"></div>
-            <a class="btn ghost sm" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
+            <a class="button sm" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
           </div>
         </section>
 
@@ -230,10 +230,10 @@
           <div class="stat"><div class="stat-label">Sensor</div><div class="stat-value" id="updSensor">-</div></div>
         </div>
         <div class="card">
-          <div class="card-header"><span>Online update</span><button class="btn ghost sm" id="btnCheckUpdate">Check for update</button></div>
+          <div class="card-header"><span>Online update</span><button class="button sm" id="btnCheckUpdate">Check for update</button></div>
           <div class="state-box">
             <div class="state-main"><span class="badge" id="updBadge">Not checked</span><span class="state-text" id="sysUpdate">Look up the latest release on GitHub.</span></div>
-            <button class="btn btn-action" id="btnUpdateNow" hidden>Update now</button>
+            <button class="button btn-action" id="btnUpdateNow" hidden>Update now</button>
           </div>
           <div class="sys-spacer"></div>
         </div>
@@ -251,9 +251,9 @@
               <div class="fi"></div>
               <div class="fn"><b id="updName"></b><span id="updSize"></span></div>
               <span class="badge" id="updFileBadge"></span>
-              <button class="btn ghost sm" type="button" id="updClear">Remove</button>
+              <button class="button sm" type="button" id="updClear">Remove</button>
             </div>
-            <button class="btn btn-action btn-wide" id="btnUpload" disabled>Install</button>
+            <button class="button btn-action btn-wide" id="btnUpload" disabled>Install</button>
           </div>
         </div>
       </div>
@@ -268,7 +268,7 @@
           <div class="card-header"><span>Reboot device</span></div>
           <div class="side-body">
             <div class="sys-muted">The web interface is unavailable for about 30 seconds while the device restarts.</div>
-            <div class="btn-row"><button class="btn" id="btnReboot">Reboot now</button></div>
+            <div class="btn-row"><button class="button btn-action" id="btnReboot">Reboot now</button></div>
           </div>
         </div>
       </div>
@@ -285,7 +285,7 @@
             <div class="mcp-note">Connection to your MQTT broker.</div>
             <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Broker</span></div><div class="cfg-ctl"><input id="mqttServer" type="text" placeholder="host or host:port" autocomplete="off" aria-label="Broker"></div></div>
             <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Username</span></div><div class="cfg-ctl"><input id="mqttUsername" type="text" autocomplete="off" aria-label="Username"></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Password</span></div><div class="cfg-ctl"><input id="mqttPassword" type="password" autocomplete="off" aria-label="Password"><button type="button" class="btn ghost sm" id="btnShowPw">Show</button></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Password</span></div><div class="cfg-ctl"><input id="mqttPassword" type="password" autocomplete="off" aria-label="Password"><button type="button" class="button sm" id="btnShowPw">Show</button></div></div>
             <div class="mcp-hint">Leave username and password empty if your broker does not require authentication.</div>
             <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Root topic</span></div><div class="cfg-ctl"><input id="mqttRootTopic" type="text" aria-label="Root topic"></div></div>
             <div class="mcp-hint" id="topicHint"></div>
@@ -324,9 +324,9 @@
           <div class="card-header"><span class="cfg-card-title">Danger zone</span></div>
           <div class="card-body cfg-body">
             <div class="mcp-note">These actions cannot be undone.</div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Sensor pairing</span></div><div class="cfg-ctl"><span class="mcp-hint" id="sysPairing">-</span><button class="btn danger ghost" id="btnPair">Pair new sensor</button></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Delete all fingerprints</span></div><div class="cfg-ctl"><span class="mcp-hint">Empties the sensor database.</span><button class="btn danger ghost" id="btnDeleteAll">Delete all</button></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Factory reset</span></div><div class="cfg-ctl"><span class="mcp-hint">Deletes fingerprints, settings and the Wi-Fi configuration.</span><button class="btn danger" id="btnFactory">Factory reset</button></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Sensor pairing</span></div><div class="cfg-ctl"><span class="mcp-hint" id="sysPairing">-</span><button class="button danger" id="btnPair">Pair new sensor</button></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Delete all fingerprints</span></div><div class="cfg-ctl"><span class="mcp-hint">Empties the sensor database.</span><button class="button danger" id="btnDeleteAll">Delete all</button></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Factory reset</span></div><div class="cfg-ctl"><span class="mcp-hint">Deletes fingerprints, settings and the Wi-Fi configuration.</span><button class="button btn-action danger" id="btnFactory">Factory reset</button></div></div>
           </div>
         </div>
       </div>
@@ -338,7 +338,7 @@
 
 <div class="savebar" id="savebar" hidden>
   <span id="barText">Unsaved changes</span>
-  <span><button class="btn ghost sm" id="btnDiscard">Discard</button> <button class="btn sm" id="btnSaveAll">Save &amp; restart</button></span>
+  <span><button class="button sm" id="btnDiscard">Discard</button> <button class="button btn-action sm" id="btnSaveAll">Save &amp; restart</button></span>
 </div>
 
 <!-- enroll dialog -->
@@ -355,14 +355,14 @@
       <div class="seg" id="enIter"></div>
       <span class="hint">Fewer iterations mean a messier fingerprint but can help with small fingers. The slot number is published as ID over MQTT.</span>
     </div>
-    <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnEnrollStart">Start enrollment</button></div>
+    <div class="dlg-actions"><button class="button" data-close>Cancel</button><button class="button btn-action" id="btnEnrollStart">Start enrollment</button></div>
   </div>
   <div class="dlg-body enroll-status" id="enrollProgress" hidden>
     <div class="sensor-disc small busy" id="enDisc" data-seq="3" style="margin:0 auto"><svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-led" cx="50" cy="50" r="42"/></svg><svg class="fp"><use href="#i-fp"/></svg></div>
     <div class="big" id="enTitle">Enrolling&hellip;</div>
     <p class="sub" id="enText" style="margin:0"></p>
     <div class="steps" id="enSteps"></div>
-    <div class="dlg-actions" style="justify-content:center"><button class="btn" id="btnEnrollDone" hidden>Done</button></div>
+    <div class="dlg-actions" style="justify-content:center"><button class="button btn-action" id="btnEnrollDone" hidden>Done</button></div>
   </div>
 </dialog>
 
@@ -386,7 +386,7 @@
       <span class="hint">Uses the time zone from System / General. A later start than end continues after midnight. Without a valid device time (no NTP) a scheduled fingerprint stays inactive.</span>
     </div>
     <div class="time-pop" id="timePop" hidden></div>
-    <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnScheduleOk">Save</button></div>
+    <div class="dlg-actions"><button class="button" data-close>Cancel</button><button class="button btn-action" id="btnScheduleOk">Save</button></div>
   </div>
 </dialog>
 
@@ -395,7 +395,7 @@
     <h2>Rename fingerprint</h2>
     <p class="sub" id="rnSlot"></p>
     <div class="field"><label for="rnName">Name</label><input id="rnName" type="text" maxlength="48" autocomplete="off"></div>
-    <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnRenameOk">Save</button></div>
+    <div class="dlg-actions"><button class="button" data-close>Cancel</button><button class="button btn-action" id="btnRenameOk">Save</button></div>
   </div>
 </dialog>
 
@@ -404,7 +404,7 @@
   <div class="dlg-body">
     <h2 id="cfTitle">Are you sure?</h2>
     <p class="sub" id="cfText"></p>
-    <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn danger" id="btnConfirmOk">Confirm</button></div>
+    <div class="dlg-actions"><button class="button" data-close>Cancel</button><button class="button btn-action danger" id="btnConfirmOk">Confirm</button></div>
   </div>
 </dialog>
 
