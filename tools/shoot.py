@@ -16,8 +16,8 @@ SHOTS = [
     ('ui-fingerprint-hover', '?hash=fingerprints&demo=hover', 1280, 700),
     ('ui-enroll', '?hash=fingerprints&demo=enroll', 1280, 800),
     ('ui-led', '?hash=led', 1280, 1700),
-    ('ui-connectivity', '?hash=connectivity', 1280, 1000),
-    ('ui-system', '?hash=system&demo=update', 1280, 1500),
+    ('ui-connectivity', '?hash=system/mqtt', 1280, 1000),
+    ('ui-update', '?hash=system/update&demo=update', 1280, 1500),
     ('ui-dark', '?hash=fingerprints&theme=dark', 1280, 1100),
     ('ui-mobile', '?hash=overview', 500, 1100),
 ]

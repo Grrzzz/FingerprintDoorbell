@@ -65,7 +65,39 @@
   }
 
   // ---------- routing ----------
-  var VIEWS = ['overview', 'fingerprints', 'led', 'connectivity', 'system'];
+  var VIEWS = ['overview', 'fingerprints', 'led', 'system-info', 'system-update', 'system-mqtt', 'system-general'];
+  var ALIASES = { settings: 'system-mqtt', connectivity: 'system-mqtt', system: 'system-info', 'system/info': 'system-info', 'system/update': 'system-update', 'system/mqtt': 'system-mqtt', 'system/general': 'system-general' };
+  var FP_PATHS = ['M12 11a3 3 0 0 0-3 3c0 2.5.5 4.5 1.5 6.5', 'M12 7a7 7 0 0 0-7 7c0 2 .3 3.6.9 5', 'M12 3a11 11 0 0 0-11 11', 'M12 3a11 11 0 0 1 11 11c0 1.8-.2 3-.5 4.5', 'M12 7a7 7 0 0 1 7 7c0 2-.3 3.8-.8 5.5', 'M12 11a3 3 0 0 1 3 3c0 1.8-.2 3.3-.6 4.8'];
+  var FAV_DOT = { ok: '#22c55e', warn: '#f59e0b', bad: '#ef4444' };
+  var newRelease = false;
+
+  // favicon: gradient tile with the fingerprint glyph and a status dot in the corner
+  function writeFavicon(level) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6cff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>' +
+      '<rect width="64" height="64" rx="19" fill="url(#g)"/><g transform="translate(12 12) scale(1.6667)" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+      FP_PATHS.map(function (d) { return '<path d="' + d + '"/>'; }).join('') + '</g>' +
+      (FAV_DOT[level] ? '<circle cx="51" cy="51" r="10" fill="' + FAV_DOT[level] + '" stroke="#fff" stroke-width="3"/>' : '') + '</svg>';
+    var old = $('favicon'), link = document.createElement('link');
+    link.id = 'favicon'; link.rel = 'icon'; link.type = 'image/svg+xml';
+    link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    old.parentNode.replaceChild(link, old);
+  }
+
+  function setUpdateAvailable(on) {
+    newRelease = on;
+    $('updateHint').hidden = !on;
+    updateNavDot();
+  }
+
+  function setNavOpen(open) {
+    $('navSystem').classList.toggle('open', open);
+    $('navSystemBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+    updateNavDot();
+  }
+
+  function updateNavDot() {
+    $('navDot').hidden = !(newRelease && !$('navSystem').classList.contains('open'));
+  }
   // ---------- release check (the browser asks GitHub, the device itself needs no internet access) ----------
   var RELEASES_API = 'https://api.github.com/repos/Grrzzz/FingerprintDoorbell/releases/latest';
   var updateChecked = false;
@@ -175,6 +207,7 @@
       return r.json();
     }).then(function (rel) {
       box.textContent = '';
+      setUpdateAvailable(isNewer(rel.tag_name, st.version));
       if (isNewer(rel.tag_name, st.version)) {
         box.className = 'd new';
         box.appendChild(document.createTextNode('Update available: ' + (rel.name || rel.tag_name) + ' - '));
@@ -196,14 +229,17 @@
 
   function route() {
     var v = location.hash.replace('#', '');
-    if (v === 'settings') v = 'connectivity';
+    v = ALIASES[v] || v;
     if (VIEWS.indexOf(v) < 0) v = 'overview';
     VIEWS.forEach(function (name) { $('view-' + name).hidden = (name !== v); });
     Array.prototype.forEach.call(document.querySelectorAll('#nav a'), function (a) {
       a.classList.toggle('active', a.getAttribute('data-view') === v);
     });
+    var inSystem = v.indexOf('system-') === 0;
+    $('navSystem').classList.toggle('active', inSystem);
+    if (inSystem) setNavOpen(true);
     updateSaveBar(v);
-    if (v === 'system') { checkUpdate(false); loadStorage(); }
+    if (v === 'system-info') loadStorage();
     window.scrollTo(0, 0);
   }
 
@@ -221,6 +257,8 @@
     $('brandName').textContent = st.hostname;
     $('brandVersion').textContent = 'Firmware ' + st.version;
     $('sysVersion').textContent = 'Version ' + st.version;
+    $('sysVersion2').textContent = 'Version ' + st.version;
+    $('footVersion').textContent = 'v' + String(st.version).replace(/^v/i, '');
 
     var title, cls, busy = false;
     if (!st.sensorConnected) { title = 'Sensor not found'; cls = 'state-bad'; }
@@ -283,7 +321,8 @@
 
     if (st.log) setLog(st.log);
     Array.prototype.forEach.call(document.querySelectorAll('.wk-now'), positionNow);
-    if (location.hash === '#system') checkUpdate(false);
+    writeFavicon(!st.sensorConnected || !st.pairingValid ? 'bad' : (st.mqtt !== 'connected' && st.mqtt !== 'unconfigured') ? 'warn' : 'ok');
+    checkUpdate(false);
   }
 
   function setLog(lines) {
@@ -915,8 +954,8 @@
   // one save bar for Connectivity and System: changes that need a restart say so, the ring duration applies immediately
   function updateSaveBar(view) {
     view = view || location.hash.replace('#', '');
-    if (view === 'settings') view = 'connectivity';
-    $('savebar').hidden = !((view === 'connectivity' || view === 'system') && formDirty());
+    view = ALIASES[view] || view;
+    $('savebar').hidden = !((view === 'system-mqtt' || view === 'system-general') && formDirty());
     $('btnSaveAll').textContent = settingsDirty() ? 'Save & restart' : 'Save';
   }
 
@@ -978,6 +1017,7 @@
   function init() {
     buildLed();
     window.addEventListener('hashchange', route);
+    $('navSystemBtn').onclick = function () { setNavOpen(!$('navSystem').classList.contains('open')); };
 
     $('swIgnore').onchange = function () {
       getJson('/api/control?ignoreTouchRing=' + (this.checked ? 'on' : 'off')).then(function (s) { st = s; renderStatus(); }).catch(fail);

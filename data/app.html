@@ -4,9 +4,9 @@
   <title>FingerprintDoorbell</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" charset="utf-8">
   <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="data:,">
+  <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-  <link rel="stylesheet" href="/style.css?v=48">
+  <link rel="stylesheet" href="/style.css?v=49">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -16,6 +16,8 @@
     <symbol id="i-led" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></symbol>
     <symbol id="i-net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1"/></symbol>
     <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></symbol>
     <symbol id="i-gh" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
@@ -39,17 +41,25 @@
       <a href="#overview" data-view="overview"><svg><use href="#i-home"/></svg><span>Overview</span></a>
       <a href="#fingerprints" data-view="fingerprints"><svg><use href="#i-fp"/></svg><span>Fingerprints</span></a>
       <a href="#led" data-view="led"><svg><use href="#i-led"/></svg><span>LED &amp; Ring</span></a>
-      <a href="#connectivity" data-view="connectivity"><svg><use href="#i-net"/></svg><span>Connectivity</span></a>
-      <a href="#system" data-view="system"><svg><use href="#i-cog"/></svg><span>System</span></a>
+      <div class="nav-group" id="navSystem">
+        <button type="button" class="nav-parent" id="navSystemBtn" aria-expanded="false" aria-controls="navSystemSub"><svg><use href="#i-cog"/></svg><span>System</span><i class="nav-dot" id="navDot" hidden></i><svg class="chev"><use href="#i-chev"/></svg></button>
+        <div class="nav-sub" id="navSystemSub">
+          <a href="#system/info" data-view="system-info">Info</a>
+          <a href="#system/update" data-view="system-update">Update</a>
+          <a href="#system/mqtt" data-view="system-mqtt">MQTT</a>
+          <a href="#system/general" data-view="system-general">General</a>
+        </div>
+      </div>
     </nav>
     <div class="rail-foot">
       <div class="theme-seg" id="themeSeg" role="group" aria-label="Color theme">
         <button type="button" data-theme="auto">Auto</button><button type="button" data-theme="light">Light</button><button type="button" data-theme="dark">Dark</button>
       </div>
       <div class="rail-links">
-        <a href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>Grrzzz fork (2.0)</a>
+        <a href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>GitHub</a>
         <a href="https://github.com/frickelzeugs/FingerprintDoorbell" target="_blank" rel="noopener"><svg><use href="#i-gh"/></svg>Original project</a>
       </div>
+      <div class="foot-meta"><span id="footVersion">&nbsp;</span><a href="#system/update" class="update-hint" id="updateHint" hidden title="Update available" aria-label="Update available"><svg><use href="#i-info"/></svg></a></div>
     </div>
   </aside>
 
@@ -118,8 +128,8 @@
     </section>
 
     <!-- ================= CONNECTIVITY ================= -->
-    <section class="view" id="view-connectivity" hidden>
-      <header><h1>Connectivity</h1><p>MQTT broker and Home Assistant. Saving restarts the device.</p></header>
+    <section class="view" id="view-system-mqtt" hidden>
+      <header><h1>MQTT</h1><p>MQTT broker and Home Assistant. Saving restarts the device.</p></header>
 
       <div class="card">
         <h2>MQTT</h2>
@@ -156,13 +166,13 @@
     </section>
 
     <!-- ================= SYSTEM ================= -->
-    <section class="view" id="view-system" hidden>
-      <header><h1>System</h1><p>Firmware, sensor pairing and resets.</p></header>
+    <section class="view" id="view-system-info" hidden>
+      <header><h1>Info</h1><p>Firmware version and storage.</p></header>
 
       <div class="card">
         <div class="list-row">
-          <div><div class="t">Firmware</div><div class="d" id="sysVersion">-</div><div class="d" id="sysUpdate"></div></div>
-          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
+          <div><div class="t">Firmware</div><div class="d" id="sysVersion">-</div></div>
+          <a class="btn ghost" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
         </div>
         <div class="list-row">
           <div><div class="t">Restart device</div><div class="d">Reboots the ESP32.</div></div>
@@ -177,6 +187,22 @@
         <div class="stack-legend" id="stLegend"></div>
         <div class="hint" id="stHint"></div>
       </div>
+    </section>
+
+    <!-- ================= UPDATE ================= -->
+    <section class="view" id="view-system-update" hidden>
+      <header><h1>Update</h1><p>New releases are looked up on GitHub by this browser.</p></header>
+      <div class="card">
+        <div class="list-row">
+          <div><div class="t">Firmware</div><div class="d" id="sysVersion2">-</div><div class="d" id="sysUpdate"></div></div>
+          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GENERAL ================= -->
+    <section class="view" id="view-system-general" hidden>
+      <header><h1>General</h1><p>Time, gong, sensor pairing and resets.</p></header>
 
       <div class="card">
         <h2>Time</h2>
@@ -265,7 +291,7 @@
         <div id="schWeek"></div>
         <div class="wk-scale"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
       </div>
-      <span class="hint">Uses the time zone from Connectivity. A later start than end continues after midnight. Without a valid device time (no NTP) a scheduled fingerprint stays inactive.</span>
+      <span class="hint">Uses the time zone from System / General. A later start than end continues after midnight. Without a valid device time (no NTP) a scheduled fingerprint stays inactive.</span>
     </div>
     <div class="time-pop" id="timePop" hidden></div>
     <div class="dlg-actions"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="btnScheduleOk">Save</button></div>
@@ -293,6 +319,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=48"></script>
+<script src="/app.js?v=49"></script>
 </body>
 </html>
