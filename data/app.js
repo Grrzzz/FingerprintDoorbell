@@ -86,6 +86,7 @@
   function setUpdateAvailable(on) {
     newRelease = on;
     $('updateHint').hidden = !on;
+    $('updateHint').title = on ? 'Newer version available' : '';
     updateNavDot();
   }
 
@@ -1017,6 +1018,7 @@
   function init() {
     buildLed();
     window.addEventListener('hashchange', route);
+    $('updateHint').onclick = function () { location.hash = '#system/update'; };
     $('navSystemBtn').onclick = function () { setNavOpen(!$('navSystem').classList.contains('open')); };
 
     $('swIgnore').onchange = function () {
