@@ -568,7 +568,6 @@
     $('tFingers').appendChild(el('small', 'stat-of', '/ 200'));
     $('tUptime').textContent = fmtUptime(st.uptime);
     $('tIp').textContent = st.ip;
-    $('tHeap').textContent = fmtBytes(st.heap);
     renderBars('#tRssiSvg .bar', st.rssi, 'tRssi');
 
     $('sysPairing').textContent = st.pairingValid ? 'Paired with this sensor.' : 'Pairing invalid. Pair the sensor again.';
