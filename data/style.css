@@ -2487,16 +2487,16 @@ a.nav-sub-item {
   50% { opacity: 0.45; }
 }
 
-/* ---- Doorbell: sensor disc instead of the camera image ---- */
-.dash .dash-sensor { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 28px 20px; background: radial-gradient(circle at 50% 42%, #1b2438, #0a0f1c 72%); color: #cbd5e1; }
-.dash .dash-sensor .sensor-disc { width: min(220px, 56%); height: auto; aspect-ratio: 1; }
-.dash .dash-sensor-cap { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.9rem; font-weight: 600; text-align: center; }
-.dash .dash-sensor-title { font-size: 0.72rem; letter-spacing: 0.07em; text-transform: uppercase; color: #64748b; }
+/* ---- Doorbell: small ring preview in the hero, controls and activity on the right ---- */
+.dash .dash-hero-main { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.dash .dash-disc { flex: none; width: 64px; height: 64px; box-shadow: 0 4px 14px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .06); }
+.dash .dash-disc .ring-svg circle { stroke-width: 8; }
 .dash .dash-hero-value.state-ok { color: var(--success); }
 .dash .dash-hero-value.state-warn { color: var(--warning); }
 .dash .dash-hero-value.state-bad { color: var(--error); }
-.dash .dash-hero-value { word-break: normal; overflow-wrap: anywhere; }
+.dash .dash-hero-value { word-break: normal; overflow-wrap: anywhere; min-width: 0; }
 .dash .stat-of { margin-left: 2px; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
-.dash .dash-controls { margin-top: 0; }
-.dash .dash-activity { margin-top: var(--card-gap); }
-@media screen and (max-width: 1156px) { .dash .dash-sensor { aspect-ratio: auto; } }
+.dash .dash-main { display: flex; flex-direction: column; gap: var(--card-gap); min-width: 0; }
+.dash .dash-main .dash-activity { margin-top: 0; flex: 1 1 auto; }
+.dash .dash-main .dash-console { flex: 1 1 auto; max-height: 520px; }
+@media screen and (max-width: 1156px) { .dash .dash-main { order: 4; } .dash .dash-main .dash-console { max-height: 300px; } }

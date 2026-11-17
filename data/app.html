@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=74">
+  <link rel="stylesheet" href="/style.css?v=75">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -93,8 +93,17 @@
         <div class="dash-side">
           <div class="dash-sequences">
             <div class="card dash-hero">
-              <div class="dash-hero-label">Doorbell</div>
-              <div class="dash-hero-value" id="heroTitle">--</div>
+              <div class="dash-hero-head">
+                <div class="dash-hero-label">Doorbell</div>
+                <span class="dash-pill" id="heroRing" title="Touch ring">--</span>
+              </div>
+              <div class="dash-hero-main">
+                <div class="dash-hero-value" id="heroTitle">--</div>
+                <div class="sensor-disc dash-disc" id="heroDisc" data-seq="3" title="Touch ring preview">
+                  <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="44"/><circle class="ring-led" cx="50" cy="50" r="44"/></svg>
+                  <svg class="fp"><use href="#i-fp"/></svg>
+                </div>
+              </div>
               <div class="dash-hero-note" id="heroSub"></div>
             </div>
           </div>
@@ -146,30 +155,22 @@
           </div>
         </div>
 
-        <div class="card dash-image dash-sensor">
-          <div class="sensor-disc" id="heroDisc" data-seq="3">
-            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="44"/><circle class="ring-led" cx="50" cy="50" r="44"/></svg>
-            <svg class="fp"><use href="#i-fp"/></svg>
-          </div>
-          <div class="dash-sensor-cap"><span class="dash-sensor-title">Touch ring</span><span id="heroRing">--</span></div>
+        <div class="dash-main">
+          <section class="card cfg-card cfg dash-controls">
+            <div class="card-header"><span class="cfg-card-title">Controls</span></div>
+            <div class="card-body cfg-body">
+              <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Ignore touch ring</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swIgnore" aria-label="Ignore touch ring"><span></span></label></span><span class="cfg-hint">Ignore the touch ring, e.g. while it rains.</span></div></div>
+              <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Hardware gong</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swRing" aria-label="Hardware gong"><span></span></label></span><span class="cfg-hint">Ring the connected gong on unknown fingers.</span></div></div>
+            </div>
+          </section>
+
+          <section class="card dash-activity">
+            <div class="card-header"><span>Activity</span></div>
+            <div class="dash-activity-sub">Latest messages from the device.</div>
+            <div class="dash-console" id="log" aria-live="polite"><span class="dash-log-empty">Loading ...</span></div>
+          </section>
         </div>
       </main>
-
-      <div class="dash-row">
-        <section class="card cfg-card cfg dash-controls">
-          <div class="card-header"><span class="cfg-card-title">Controls</span></div>
-          <div class="card-body cfg-body">
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Ignore touch ring</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swIgnore" aria-label="Ignore touch ring"><span></span></label></span><span class="cfg-hint">Ignore the touch ring, e.g. while it rains.</span></div></div>
-            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Hardware gong</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swRing" aria-label="Hardware gong"><span></span></label></span><span class="cfg-hint">Ring the connected gong on unknown fingers.</span></div></div>
-          </div>
-        </section>
-      </div>
-
-      <section class="card dash-activity">
-        <div class="card-header"><span>Activity</span></div>
-        <div class="dash-activity-sub">Latest messages from the device.</div>
-        <div class="dash-console" id="log" aria-live="polite"><span class="dash-log-empty">Loading ...</span></div>
-      </section>
     </section>
 
     <!-- ================= FINGERPRINTS ================= -->
@@ -493,6 +494,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=74"></script>
+<script src="/app.js?v=75"></script>
 </body>
 </html>
