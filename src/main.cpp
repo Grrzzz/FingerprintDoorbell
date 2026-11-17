@@ -285,7 +285,7 @@ String getLogMessagesAsHtml() {
 
 String getTimestampString(){
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
+  if(!getLocalTime(&timeinfo, 0)){
     Serial.println("Failed to obtain time");
     return "no time";
   }
@@ -484,7 +484,11 @@ void startWebserver(){
   }
 
   // Init time by NTP Client
-  configTzTime(settingsManager.getAppSettings().timezone.c_str(), settingsManager.getAppSettings().ntpServer.c_str());
+  // SNTP keeps the pointer to the server name, so the strings must outlive this function
+  static String ntpTimezone, ntpServerName;
+  ntpTimezone = settingsManager.getAppSettings().timezone;
+  ntpServerName = settingsManager.getAppSettings().ntpServer;
+  configTzTime(ntpTimezone.c_str(), ntpServerName.c_str());
   
   // webserver for normal operating or wifi config?
   if (currentMode == Mode::wificonfig)
