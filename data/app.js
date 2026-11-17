@@ -278,15 +278,15 @@
       var perFinger = d.fingerCount > 0 && d.fingers > 0 ? d.fingers / d.fingerCount : 1.5;
       var more = Math.floor(free / Math.max(1, perFinger));
       var pct = Math.round((d.total - d.reserved - free) * 100 / usable);
-      var hint = kb(d.total - d.reserved - free) + ' of ' + kb(usable) + ' usable (' + pct + '%). About ' + more + ' more fingerprint' + (more === 1 ? '' : 's') + ' fit.';
-      if (pct >= 85) hint += ' Almost full: delete fingerprints or shorten names.';
       renderStack($('stStack'), 'Flash area for fingerprints, schedules and settings', d.total, [
         { cls: 'seg-1', label: 'Fingerprints', value: d.fingers },
         { cls: 'seg-2', label: 'Settings', value: d.settings },
         { cls: 'seg-3', label: 'System and other', value: d.other },
         { cls: 'seg-free', label: 'Free', value: free },
         { cls: 'seg-res', label: 'Reserved', value: d.reserved }
-      ], kb, hint, pct >= 85);
+      ], kb);
+      fillKv('stKv', [['Used', kb(d.total - d.reserved - free)], ['Usable', kb(usable)], ['Fingerprints', d.fingerCount], ['Room for more', '~' + more]]);
+      $('stStack').appendChild(el('div', 'stack-note' + (pct >= 85 ? ' bad' : ''), pct + '% used' + (pct >= 85 ? '. Almost full: delete fingerprints or shorten names.' : '')));
     }).catch(function () {});
   }
 
@@ -425,7 +425,7 @@
     ]);
 
     $('sysVersion').textContent = String(st.version);
-    $('fwChannel').textContent = /dev|develop/i.test(String(st.version)) ? 'Development' : 'Stable';
+    $('fwWebui').textContent = String(st.version);
     fillKv('fwKv', [
       ['Build time', sys.build], ['SDK', sys.sdk], ['Last reset', st.resetReason],
       ['Self-update', st.update && st.update.state ? st.update.state : undefined]
@@ -444,7 +444,13 @@
     $('devFlash').textContent = sys.flash ? Math.round(sys.flash / 1048576) + ' MB' : '-';
     $('devChip').textContent = sys.chip || '-';
     fillChips('devChips', [['Cores', sys.cores], ['Revision', sys.rev], ['Clock', sys.mhz ? sys.mhz + ' MHz' : undefined]]);
-    fillKv('devKv', [['Reset reason', st.resetReason]]);
+    $('devReset').textContent = st.resetReason || '-';
+    if (sys.temp !== undefined) {
+      $('devTemp').textContent = sys.temp + ' °C';
+      var tf = $('devTempFill');
+      tf.style.width = Math.max(4, Math.min(100, (sys.temp - 20) / 60 * 100)) + '%';
+      tf.className = sys.temp >= 70 ? 'hot' : sys.temp >= 55 ? 'warm' : '';
+    }
 
     $('memFree').textContent = fmtBytes(st.heap);
     if (sys.heapTotal && sys.heapBlock) {
@@ -465,7 +471,7 @@
     setBadge('timeBadge', hasClock ? 'Synchronized' : 'No time', hasClock ? 'success' : 'warning');
     var clockText = '-';
     if (hasClock) clockText = ('0' + Math.floor(st.clock.min / 60)).slice(-2) + ':' + ('0' + st.clock.min % 60).slice(-2);
-    $('timeNow').textContent = clockText;
+    $('timeNow').textContent = hasClock && st.clock.iso ? st.clock.iso : clockText;
     fillKv('timeKv', [['Uptime', fmtUptime(st.uptime)]]);
 
     var list = $('svcList');

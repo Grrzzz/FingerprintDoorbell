@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=68">
+  <link rel="stylesheet" href="/style.css?v=69">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -185,7 +185,7 @@
           </section>
 
           <section class="card sys-card">
-            <div class="card-header"><span>Firmware</span><span class="chip"><b>Release</b><output id="fwChannel">-</output></span></div>
+            <div class="card-header"><span>Firmware</span><span class="chip"><b>WebUI</b><output id="fwWebui">-</output></span></div>
             <div class="sys-hero-block">
               <div class="sys-hero-label">Version</div>
               <output class="sys-hero-num" id="sysVersion">-</output>
@@ -194,24 +194,33 @@
           </section>
 
           <section class="card sys-card">
-            <div class="card-header"><span>Fingerprint sensor</span><output class="badge" id="senBadge">-</output></div>
-            <div class="sys-kv-grid" id="senKv"></div>
-          </section>
-
-          <section class="card sys-card">
-            <div class="card-header"><span>Device</span><span class="chip"><b>Flash</b><output id="devFlash">-</output></span></div>
+            <div class="card-header"><span>Device</span><span class="chip"><b>Reset</b><output id="devReset">-</output></span></div>
             <div class="sys-hero-block">
               <div class="sys-hero-label">Chip</div>
               <output class="sys-hero-num" id="devChip">-</output>
               <div class="chips" id="devChips"></div>
             </div>
-            <div class="sys-kv-grid" id="devKv"></div>
+            <div class="sys-temp">
+              <div class="sys-temp-head"><span class="sys-k">Temperature</span><output id="devTemp">-</output></div>
+              <div class="sys-meter"><i id="devTempFill"></i></div>
+            </div>
+          </section>
+
+          <section class="card sys-card">
+            <div class="card-header"><span>Storage</span><span class="chip"><b>Flash</b><output id="devFlash">-</output></span></div>
+            <div class="stack" id="stStack"></div>
+            <div class="sys-kv-grid" id="stKv"></div>
           </section>
 
           <section class="card sys-card">
             <div class="card-header"><span>Memory</span><span class="chip"><b>Free</b><output id="memFree">-</output></span></div>
             <div class="stack" id="memStack"></div>
             <div class="sys-kv-grid" id="memKv"></div>
+          </section>
+
+          <section class="card sys-card">
+            <div class="card-header"><span>Fingerprint sensor</span><output class="badge" id="senBadge">-</output></div>
+            <div class="sys-kv-grid" id="senKv"></div>
           </section>
 
           <section class="card sys-card">
@@ -226,11 +235,6 @@
           <section class="card sys-card">
             <div class="card-header"><span>Services</span></div>
             <div class="sys-svc-list" id="svcList"></div>
-          </section>
-
-          <section class="card sys-card sys-span2">
-            <div class="card-header"><span>Storage</span></div>
-            <div class="stack" id="stStack"></div>
           </section>
         </div>
       </div>
@@ -428,6 +432,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=68"></script>
+<script src="/app.js?v=69"></script>
 </body>
 </html>

@@ -201,14 +201,14 @@ String getStatusJson() {
     esp_chip_info(&chip);
     json += String(",\"sys\":{\"chip\":\"ESP32\",\"rev\":") + chip.revision + ",\"cores\":" + chip.cores + ",\"mhz\":" + ESP.getCpuFreqMHz()
             + ",\"flash\":" + ESP.getFlashChipSize() + ",\"heapMin\":" + ESP.getMinFreeHeap() + ",\"heapBlock\":" + ESP.getMaxAllocHeap()
-            + ",\"heapTotal\":" + ESP.getHeapSize() + ",\"sdk\":\"" + ESP.getSdkVersion() + "\",\"build\":\"" + __DATE__ + " " + __TIME__ + "\""
+            + ",\"temp\":" + String(temperatureRead(), 1) + ",\"heapTotal\":" + ESP.getHeapSize() + ",\"sdk\":\"" + ESP.getSdkVersion() + "\",\"build\":\"" + __DATE__ + " " + __TIME__ + "\""
             + ",\"mac\":\"" + WiFi.macAddress() + "\",\"channel\":" + WiFi.channel() + ",\"gateway\":\"" + WiFi.gatewayIP().toString()
             + "\",\"netmask\":\"" + WiFi.subnetMask().toString() + "\",\"dns\":\"" + WiFi.dnsIP().toString() + "\",\"bssid\":\"" + WiFi.BSSIDstr() + "\"}";
   }
   // device clock (time zone applied), used by the web interface to mark "now" in the schedule views
   struct tm clockInfo;
   if (getLocalTime(&clockInfo, 0))
-    json += ",\"clock\":{\"day\":" + String((clockInfo.tm_wday + 6) % 7) + ",\"min\":" + String(clockInfo.tm_hour * 60 + clockInfo.tm_min) + "}";
+    json += ",\"clock\":{\"day\":" + String((clockInfo.tm_wday + 6) % 7) + ",\"min\":" + String(clockInfo.tm_hour * 60 + clockInfo.tm_min) + ",\"iso\":\"" + String(clockInfo.tm_year + 1900) + "-" + String(clockInfo.tm_mon + 1) + "-" + String(clockInfo.tm_mday) + " " + String(clockInfo.tm_hour) + ":" + (clockInfo.tm_min < 10 ? "0" : "") + String(clockInfo.tm_min) + ":" + (clockInfo.tm_sec < 10 ? "0" : "") + String(clockInfo.tm_sec) + "\"}";
   json += ",\"lastEvent\":{\"type\":\"" + lastEventType + "\",\"name\":\"" + jsonEscape(lastEventName) + "\",\"id\":" + String(lastEventId)
           + ",\"confidence\":" + String(lastEventConfidence) + ",\"time\":\"" + jsonEscape(lastEventTime) + "\"}";
   // log messages, oldest first

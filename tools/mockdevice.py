@@ -51,9 +51,9 @@ STATUS = {
     'update': "setTimeout(function(){location.hash='#system/update';var b=document.getElementById('updBadge');b.className='badge badge-warning';b.textContent='Update available';var s=document.getElementById('sysUpdate');s.textContent='Version v2.2 is ready to install. (release notes)';document.getElementById('btnUpdateNow').hidden=false;},1500);",
     'storage': {'used': 230, 'total': 630},
     'sensor': {'capacity': 200, 'security': 3, 'templates': 12, 'packetLen': 128, 'baud': 57600, 'status': 12, 'address': 4294967295},
-    'sys': {'chip': 'ESP32', 'rev': 1, 'cores': 2, 'mhz': 240, 'flash': 4194304, 'heapMin': 152000, 'heapBlock': 110000, 'heapTotal': 295000,
+    'sys': {'chip': 'ESP32', 'rev': 1, 'cores': 2, 'mhz': 240, 'flash': 4194304, 'heapMin': 152000, 'heapBlock': 110000, 'heapTotal': 295000, 'temp': 47.5,
             'sdk': 'v3.3.5', 'build': 'Nov 17 2026 10:00:00', 'mac': 'AA:BB:CC:00:11:22', 'channel': 6, 'gateway': '192.168.1.1',
-            'netmask': '255.255.255.0', 'dns': '192.168.1.1', 'bssid': 'DE:AD:BE:EF:00:01'}, 'clock': {'day': 1, 'min': 14 * 60 + 32},
+            'netmask': '255.255.255.0', 'dns': '192.168.1.1', 'bssid': 'DE:AD:BE:EF:00:01'}, 'clock': {'day': 1, 'min': 14 * 60 + 32, 'iso': '2026-11-17 14:32:09'},
     'lastEvent': {'type': 'match', 'name': 'Bob (Thumb right) #Front door', 'id': 3, 'confidence': 311, 'time': '2026-11-03 14:31:58 CET'},
     'log': LOG,
 }
