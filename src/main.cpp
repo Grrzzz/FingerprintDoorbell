@@ -18,7 +18,7 @@
 
 enum class Mode { scan, enroll, wificonfig, maintenance };
 
-const char* VersionInfo = "2.1 Grrzzz";
+const char* VersionInfo = "2.2 Grrzzz";
 
 // ===================================================================================================================
 // Caution: below are not the credentials for connecting to your home network, they are for the Access Point mode!!!

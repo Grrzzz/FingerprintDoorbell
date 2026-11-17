@@ -1,4 +1,4 @@
-# FingerprintDoorbell 2.1 "Grrzzz"
+# FingerprintDoorbell 2.2 "Grrzzz"
 
 A fingerprint reader that doubles as a doorbell: an **ESP32** and a **Grow R503** sensor recognize fingers, ring the bell for everybody else and tell your smart home about both. This is a fork of [frickelzeugs/FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) with a completely new web interface, Home Assistant auto discovery, per-fingerprint schedules, configurable LED states and one-click updates.
 
@@ -22,7 +22,9 @@ A fingerprint reader that doubles as a doorbell: an **ESP32** and a **Grow R503*
 
 | | |
 | --- | --- |
-| **New web interface** | Single page app served by the ESP32, no internet needed, light and dark mode, works on phones. |
+| **New web interface** | Single page app served by the ESP32, no internet needed, light and dark mode, works on phones. Since 2.2 it follows the look of the AI-on-the-Edge fork (sidebar, System submenu with Info, Setup, Update and Reboot). |
+| **Network setup in the browser** | Change hostname, Wi-Fi (with a network scan) and DHCP or a static IP address without the configuration portal (2.2). |
+| **MQTT on and off** | MQTT can be switched off completely, the device then makes no broker connection (2.2). |
 | **Home Assistant auto discovery** | One device with all entities, LED settings and a gong button included. |
 | **Fingerprint schedules** | Switch fingerprints on and off, or let up to four weekly time windows per fingerprint decide. |
 | **Disabled fingerprints are visible** | A switched off finger rings like an unknown finger and is reported as a "disabled match" to MQTT and Home Assistant. |
@@ -127,7 +129,7 @@ How it works:
 - Configs are published retained to `<prefix>/<component>/fingerprintdoorbell_<mac>/<entity>/config`. The unique id is derived from the MAC address and survives renaming.
 - All entities use the availability topic `<rootTopic>/connection` (`online`, `offline` as last will).
 - Everything is republished when Home Assistant restarts. State topics are retained, so values are there right after (re)discovery.
-- Discovery can be switched off (the entities are removed again) and the discovery prefix can be changed under **Connectivity**.
+- Discovery can be switched off (the entities are removed again) and the discovery prefix can be changed under **System, Setup, MQTT**.
 
 Typical automations use the Ring binary sensor for the bell, the Match sensor to open a door (react to the `#Garage` or `#Front door` part of the name) and the Disabled Match sensor for notifications.
 
@@ -162,7 +164,9 @@ The sensor reacts to a touch of the metal ring around it, which makes it very se
 - **Hardware gong**: duration of the signal on the output pin (default 275 ms). The gong itself is switched on the Overview page.
 - **Danger zone**: pairing a new sensor, deleting all fingerprints, factory reset.
 
-Settings on the **System** and **Connectivity** pages share one save bar: when something changed it appears at the bottom with *Discard* and *Save*. Changes that need a restart (broker, NTP, time zone) say *Save & restart*, the gong duration applies immediately.
+Settings live under **System, Setup** in the sections General (gong, time), Network (hostname, Wi-Fi with scan, DHCP or static IP), MQTT (on/off, broker, authentication, Home Assistant discovery) and Factory reset. They share one save bar: when something changed it appears at the bottom with *Discard* and *Save*. Changes that need a restart (network, broker, NTP, time zone) say *Save & restart*, the gong duration applies immediately.
+
+If a static IP address does not work, the device is not reachable any more. Start the configuration portal (hold a finger on the sensor for 10 seconds while powering on) and save the Wi-Fi there: the portal switches back to DHCP.
 
 ### Pairing
 
@@ -182,7 +186,9 @@ The web interface uses a small API that you can use from scripts. There is no au
 | `GET /api/finger/policy?id=1&enabled=0&scheduled=1&w=31,480,720,0;96,0,0,1` | switch a fingerprint or set its schedule; `w` holds up to four windows `days,from,to,allDay` (days: bit 0 = Monday, times in minutes) |
 | `GET /api/storage` | usage of the settings flash area |
 | `GET /api/enroll/cancel` | cancel a running enrollment |
-| `GET /api/selfupdate/start?tag=v2.1` | start the one-click update to a release of this fork |
+| `GET /api/wifi/scan` | Wi-Fi scan without blocking: the first call starts it and answers `running: true`, poll until `running` is `false` and `networks` holds `ssid`, `rssi`, `channel`, `authmode` |
+| `GET /network?hostname=..&ssid=..&password=..&staticIp=1&ip=..&subnet=..&gateway=..&dns=..` | save the network settings and restart (`password=********` keeps the stored one, leave out `staticIp` for DHCP, `noReboot=1` saves without restart) |
+| `GET /api/selfupdate/start?tag=v2.2` | start the one-click update to a release of this fork |
 | `POST /api/update/upload` | manual update: multipart upload of `update.zip` (or a plain `firmware.bin`), the only POST endpoint |
 
 ## Hardware and wiring
@@ -242,7 +248,7 @@ With no Wi-Fi configured (a fresh install) the device starts in configuration mo
 
 Enter your Wi-Fi and click **Save and restart**. The LED ring flashes blue while booting and then shows the ready color (white by default) once the connection works. The web interface is then reachable at `http://fingerprintdoorbell` (if you kept the default hostname). Once Wi-Fi is configured the device never enters configuration mode again, even without Wi-Fi. To get it back, hold a finger on the sensor for at least 10 seconds while powering on, or use the factory reset.
 
-After that open **Connectivity** to enter your MQTT broker and start enrolling fingerprints.
+After that open **System, Setup, MQTT** to enter your MQTT broker and start enrolling fingerprints.
 
 ## Updating an existing device
 

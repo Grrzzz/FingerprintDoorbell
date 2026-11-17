@@ -38,7 +38,7 @@ pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 
 ## Versioning, releases and the one-click update
 
-- The version string is `VersionInfo` in `src/main.cpp` (format `2.1 Grrzzz`). The web interface compares it with the latest GitHub release tag (`v2.1`, `isNewer()` in `app.js`).
+- The version string is `VersionInfo` in `src/main.cpp` (format `2.2 Grrzzz`). The web interface compares it with the latest GitHub release tag (`v2.2`, `isNewer()` in `app.js`).
 - **Dev and modified builds** have no clean version (anything not starting with `<major>.<minor>`, for example `Develop: develop @ 1a2b3c4`, or a version ending in `+`). `isNewer()` always offers the official release to them, so a test build can always get back onto a release. Test it with `python tools/mockdevice.py 8090 "Develop: develop @ 1a2b3c4"`.
 - A release `vX.Y` has one asset for the device, **`update.zip`**, containing `spiffs.bin` first and `firmware.bin` second, both **stored** (not compressed, the device unpacks the stream while receiving it and has no inflate code). Attach `firmware.bin` and `spiffs.bin` as well for flashing with esptool. The device downloads `https://github.com/Grrzzz/FingerprintDoorbell/releases/download/<tag>/update.zip` (`src/SelfUpdate.cpp`), so the name and tag format (`v` followed by digits and dots) must not change.
 - `src/GithubRoots.h` holds the root certificates (USERTrust ECC for github.com, ISRG Root X1 for the release CDN). If GitHub changes its chain the update fails with a connection error and the certificates have to be replaced. The manual upload keeps working.
@@ -48,10 +48,10 @@ pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 
 1. Set `VersionInfo` in `src/main.cpp` to `X.Y Grrzzz` and bump the cache parameter in `data/app.html` if the web interface changed. **The version must be changed before building**, an old build still carries the old string and would offer itself as an update forever.
 2. Update `README.md` (what is new, screenshots from the mock) and commit everything. Do not build from a dirty tree.
-3. Build: `pio run`, `touch`/save `src/main.cpp` if the version looks stale, then `pio run -t buildfs`.
+3. Build: check first that PlatformIO, the libraries in `lib/` (with the patch) and, for publishing, the `gh` CLI or a browser session are available; without them only steps 1 and 2 can be done, say so instead of tagging an unbuilt commit. Then `pio run`, `touch`/save `src/main.cpp` if the version looks stale, then `pio run -t buildfs`.
 4. `python tools/make_update_zip.py vX.Y` checks that `VersionInfo` matches the tag and is inside `firmware.bin`, builds `update.zip` and prints the SHA-256 of all three files.
 5. Tag `vX.Y` (annotated) on the commit that was built. A commit after the build makes the binary differ from the tag.
-6. After the owner's OK: push `develop` and the tag, create the GitHub release (title `X.Y Grrzzz`) with `update.zip`, `firmware.bin`, `spiffs.bin`. The device asks `releases/latest`, so do not mark a test release as latest.
+6. After the owner's OK: push the release branch (the remote currently has only `master`; feature branches are merged into it first, ask the owner) and the tag, create the GitHub release (title `X.Y Grrzzz`) with `update.zip`, `firmware.bin`, `spiffs.bin`. The device asks `releases/latest`, so do not mark a test release as latest.
 7. Release notes (English): "What is new", "Installation" (update on the Update page, or upload `update.zip` there; first install or recovery: esptool with `bootloader.zip`, `firmware.bin`, `spiffs.bin`), the SHA-256 of the three files, and the line that the release is built and checked but **not a full device test** if that is true.
 8. If a tag has to move after publishing: `git push --force origin vX.Y` and replace the assets with the rebuilt files.
 
@@ -71,16 +71,21 @@ The device unpacks the stream, installs the filesystem and then the firmware, an
 ## Web interface rules (`data/`)
 
 - Vanilla JS in one IIFE (`app.js`), DOM built with the `el(tag, cls, text)` helper, no `innerHTML` with data from the device (names are user input).
-- After any change to `app.js` or `style.css` bump the cache parameter in `app.html` (`/app.js?v=N`, `/style.css?v=N`), otherwise browsers and the device keep serving the old files.
+- After any change to `app.js` or `style.css` bump the cache parameter in `app.html` **and** `wificonfig.html` (`/app.js?v=N`, `/style.css?v=N`), otherwise browsers and the device keep serving the old files.
+- The look follows the owner's AI-on-the-Edge fork (Grrzzz/AI-on-the-edge-device, `sd-card/html/`). Sidebar, footer and the System submenu (Info, Setup, Update, Reboot) are copied 1:1 from there; when changing them, compare with the reference instead of inventing new styles. `wificonfig.html` uses the same `style.css`, keep its classes working.
+- Setup (`#view-system-setup`, class `.cfg`) has sections General, Network, MQTT and Factory reset (`data-section`). Rows are shown or hidden with `data-show="mqtt"`, `"mqtt auth"`, `"mqtt ha"` and similar; extend that mechanism rather than toggling single elements. Dialogs that use `.cfg` styles (the Wi-Fi scan `#dlgScan`) must sit inside `.cfg`.
+- Network save order: the UI calls `/network?...&noReboot=1` first and then `/settings`, which restarts once for both. The password field shows `********`, sending that back keeps the stored password.
+- SSIDs from the Wi-Fi scan come from the air: set them with `textContent` only, like any other device data.
+- MQTT status values `disabled` and `unconfigured` are shown as inactive (not as an error) on Overview and Info.
 - Light and dark theme come from CSS variables in `style.css`; theme is `auto|light|dark` (`data-theme` on `<html>`, stored in `localStorage`). Use the variables, never fixed colors for text/background.
 - Text is English, sentence case, no terminal punctuation on labels.
-- Changes of settings use one save bar (appears on System and Connectivity when something is dirty). Switches and LED settings apply instantly through the API instead.
+- Changes of settings use one save bar (appears on System, Setup when something is dirty, *Save & restart* when a restart is needed). Switches and LED settings apply instantly through the API instead.
 - Data from the API: fingerprint windows arrive compact as `[days, from, to, allDay]` and are converted by `normalizeFingers()`. Every place that assigns `fingers` must go through it.
 - Keep the page working without internet. The release check is the only external request and must stay optional (it runs in the browser, not on the device).
 
 ## HTTP API conventions (`src/main.cpp`)
 
-All endpoints are `GET` (except the file upload `POST /api/update/upload`), answer JSON via `sendJson()` and have no authentication (the device is meant for a trusted network). `/api/status`, `/api/fingerprints`, `/api/settings`, `/api/led`, `/api/control`, `/api/finger/policy`, `/api/storage`, `/api/enroll/cancel`, `/api/selfupdate/start` are listed in the README. Static files and the SPA are served with `Cache-Control: no-cache`. The old template placeholders (`processor()`) are only used by `wificonfig.html`.
+All endpoints are `GET` (except the file upload `POST /api/update/upload`), answer JSON via `sendJson()` and have no authentication (the device is meant for a trusted network). `/api/status`, `/api/fingerprints`, `/api/settings`, `/api/led`, `/api/control`, `/api/finger/policy`, `/api/storage`, `/api/enroll/cancel`, `/api/selfupdate/start`, `/api/wifi/scan`, `/network` are listed in the README. `/api/wifi/scan` is asynchronous (`WiFi.scanNetworks(true)`, answers `running` and `networks`, the UI polls); never block the web server with a synchronous scan. `/network` validates the SSID and the static IP addresses and answers 400 on errors; `noReboot=1` only saves. The setup portal's `/save` (`wificonfig.html`) always resets `staticIp` to false: it is the rescue path when a static address is wrong, keep it. Static files and the SPA are served with `Cache-Control: no-cache`. The old template placeholders (`processor()`) are only used by `wificonfig.html`.
 
 ## Fingerprints, schedules and storage
 
@@ -102,14 +107,16 @@ Five configurable states (`touchRing`=ready, `scan`, `match`, `ignore`, `gongOff
 
 ## Settings (`SettingsManager`)
 
-Add a field to the struct, load it with a default in `loadAppSettings()`, write it in `saveAppSettings()` (NVS key names are at most 15 characters), expose it in `getSettingsJson()` and, if needed, accept it in the `/settings` route. Keep defaults compatible with existing devices (never rename or drop existing keys). Settings that need a restart are saved through the Connectivity/System save bar, the rest through their own API calls.
+Add a field to the struct, load it with a default in `loadAppSettings()`, write it in `saveAppSettings()` (NVS key names are at most 15 characters), expose it in `getSettingsJson()` and, if needed, accept it in the `/settings` route. Keep defaults compatible with existing devices (never rename or drop existing keys). Settings that need a restart are saved through the Setup save bar, the rest through their own API calls. Example of a compatible default: `mqttEnabled` defaults to "a broker is set", so devices updated from older versions keep MQTT on. Wi-Fi settings hold `staticIp`, `ip`, `subnet`, `gateway`, `dns`; a static configuration is only applied when all of IP, subnet and gateway parse.
 
 ## Testing
 
 There are no automated tests. What to do instead:
 
 - Always build (`pio run` and `pio run -t buildfs`) and look at the size.
-- For UI work use the virtual device, no hardware needed: `python tools/mockdevice.py 8090` serves `data/` with made-up API data, open `http://127.0.0.1:8090/`. Demo states: `?demo=enroll|schedule|picker|hover|update`, `?theme=dark`, `?hash=fingerprints`.
+- For UI work use the virtual device, no hardware needed: `python tools/mockdevice.py 8090` serves `data/` with made-up API data, open `http://127.0.0.1:8090/`. Demo states: `?demo=enroll|schedule|picker|hover|update`, `?theme=dark`, `?hash=fingerprints`. The mock also simulates the Wi-Fi scan (`WIFI_SCAN`, including a hidden SSID and one with HTML in its name), `/network` and restarts with realistic delays. Restart it after editing `mockdevice.py`.
+- Browser automation notes: pages with a password field may refuse screenshots, so check states through the DOM. Switches are hidden checkboxes; focus them and press Space instead of clicking.
+- On Windows the shell is PowerShell 5: no `&&` (use `;`), write CRLF explicitly (`` "`r`n" ``), and `[IO.File]` methods need absolute paths (`(Resolve-Path f).Path`). Check `app.js` for syntax errors with `node -e "new Function(require('fs').readFileSync('data/app.js','utf8'))"`.
 - `python tools/shoot.py 8090 shots` creates the README screenshots with headless Edge (needs Pillow and Edge). Screenshots in the README must only show made-up data, never a real device, names, addresses or credentials.
 - Changes that touch storage, MQTT or the scan flow need a real device. Test them on a device that does not hold real data first, a migration or a changed storage layout can lose names and schedules.
 
