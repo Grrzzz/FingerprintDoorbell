@@ -171,21 +171,44 @@
 
   // manual update: upload update.zip (or firmware.bin) to the device, it unpacks and installs it itself
   function setupUpload() {
-    var file = $('updFile'), btn = $('btnUpload'), txt = $('updPickText');
-    file.onchange = function () {
+    var zone = $('updPick'), file = $('updFile'), btn = $('btnUpload');
+    var MAX = 4 * 1024 * 1024;
+    function size(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+    function show(f, text, cls) {
+      $('updInfo').hidden = !f;
+      if (!f) return;
+      $('updName').textContent = f.name;
+      $('updSize').textContent = size(f.size);
+      $('updFileBadge').className = 'badge ' + cls;
+      $('updFileBadge').textContent = text;
+    }
+    function validate() {
       var f = file.files[0];
-      var ok = !!f && /\.(zip|bin)$/i.test(f.name) && f.size > 0 && f.size <= 3 * 1024 * 1024;
-      txt.textContent = f ? f.name + ' (' + Math.round(f.size / 1024) + ' KB)' : 'Choose update.zip';
-      if (f && !ok) toast('Choose update.zip or firmware.bin (max 3 MB)', true);
-      btn.disabled = !ok;
-    };
+      if (!f) { show(null); btn.disabled = true; return; }
+      var err = !/\.(zip|bin)$/i.test(f.name) ? 'Not a .zip or .bin'
+        : /\s/.test(f.name) ? 'No spaces in the name'
+        : f.size <= 0 ? 'Empty file'
+        : f.size > MAX ? 'Too large' : '';
+      show(f, err || 'Ready', err ? 'badge-error' : 'badge-success');
+      btn.disabled = !!err;
+    }
+    zone.onclick = function () { file.click(); };
+    zone.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } };
+    ['dragenter', 'dragover'].forEach(function (n) { zone.addEventListener(n, function (e) { e.preventDefault(); zone.classList.add('over'); }); });
+    ['dragleave', 'drop'].forEach(function (n) { zone.addEventListener(n, function (e) { e.preventDefault(); zone.classList.remove('over'); }); });
+    zone.addEventListener('drop', function (e) {
+      if (!e.dataTransfer.files.length) return;
+      file.files = e.dataTransfer.files;
+      validate();
+    });
+    file.onchange = validate;
+    $('updClear').onclick = function () { file.value = ''; validate(); };
     btn.onclick = function () {
       var f = file.files[0];
       if (!f) return;
       confirmDialog('Install ' + f.name + '?', 'The device installs the update and restarts. Do not unplug it meanwhile.', 'Install', function () { uploadUpdate(f); });
     };
   }
-
   function uploadUpdate(f) {
     $('ovTitle').textContent = 'Uploading ' + f.name;
     $('ovText').textContent = 'Starting...';

@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-  <link rel="stylesheet" href="/style.css?v=55">
+  <link rel="stylesheet" href="/style.css?v=56">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -225,8 +225,19 @@
         <div class="card">
           <div class="card-header"><span>Manual update</span></div>
           <div class="card-pad">
-            <p class="lead">Upload the update.zip of a release. The device installs the web interface first, then the firmware, and restarts. A plain firmware.bin works too.</p>
-            <label class="pick" id="updPick"><input type="file" id="updFile" accept=".zip,.bin" hidden><span id="updPickText">Choose update.zip</span></label>
+            <p class="lead">Install a release package (<b>update.zip</b>) or a <b>firmware.bin</b> from this computer. Your settings are kept. The device installs the web interface first, then the firmware, and restarts.</p>
+            <div class="pick" id="updPick" tabindex="0" role="button" aria-label="Choose a package or drop it here">
+              <div class="pick-icon"></div>
+              <div class="pick-title">Drop a package here</div>
+              <div class="pick-sub">or <b>browse</b> your computer &middot; *.zip, *.bin, max. 4 MB</div>
+            </div>
+            <input type="file" id="updFile" accept=".zip,.bin" hidden>
+            <div class="file-row" id="updInfo" hidden>
+              <div class="fi"></div>
+              <div class="fn"><b id="updName"></b><span id="updSize"></span></div>
+              <span class="badge" id="updFileBadge"></span>
+              <button class="btn ghost sm" type="button" id="updClear">Remove</button>
+            </div>
             <button class="btn btn-action btn-wide" id="btnUpload" disabled>Install</button>
           </div>
         </div>
@@ -395,6 +406,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=55"></script>
+<script src="/app.js?v=56"></script>
 </body>
 </html>
