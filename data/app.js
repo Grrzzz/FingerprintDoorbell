@@ -941,57 +941,47 @@
       var info = parseFingerName(f.name);
       // with a schedule the schedule decides: the switch then only shows the current state
       var on = f.scheduled ? f.active !== false : f.enabled !== false;
-      var state = f.scheduled ? (on ? 'ok' : 'wait') : (on ? 'ok' : 'off');
       // greyed out like a manually disabled card whenever the fingerprint is currently inactive (switch or schedule)
-      var card = el('div', 'finger ' + (on ? 'ok' : 'off') + (info ? ' ' + info.cls : ''));
+      var card = el('div', 'card cfg fp-card ' + (on ? 'ok' : 'off') + (info ? ' ' + info.cls : ''));
 
-      var head = el('div', 'finger-head');
-      head.appendChild(el('span', 'slot', '#' + f.id));
-      // state icons: clock = schedule (green active / amber inactive, hover shows the week), ban = switched off
-      var ind = el('div', 'finger-ind');
-      if (f.scheduled) {
-        var clock = el('span', 'ind ' + (on ? 'ok' : 'wait'));
-        clock.appendChild(icon('i-clock'));
-        clock.setAttribute('role', 'img');
-        clock.setAttribute('aria-label', on ? 'Schedule: active now' : 'Schedule: inactive now');
-        clock.onmouseenter = function () { showWeekTip(clock, f); };
-        clock.onmouseleave = hideWeekTip;
-        clock.onclick = function () { openSchedule(f); };
-        ind.appendChild(clock);
-      } else if (!on) {
-        var ban = el('span', 'ind off');
-        ban.appendChild(icon('i-ban'));
-        ban.title = 'Disabled';
-        ban.setAttribute('role', 'img');
-        ban.setAttribute('aria-label', 'Disabled');
-        ind.appendChild(ban);
-      }
-      head.appendChild(ind);
-      var sw = el('label', 'switch sm');
+      var head = el('div', 'card-header');
+      var title = el('div', 'fp-title');
+      title.appendChild(el('span', 'slot', '#' + f.id));
+      title.appendChild(el('span', 'fp-name' + (f.name ? '' : ' unnamed'), info ? info.name : (f.name || 'unnamed')));
+      head.appendChild(title);
+      var sw = el('label', 'cfg-switch' + (f.scheduled ? ' locked' : ''));
       sw.title = f.scheduled ? 'Controlled by the schedule' : on ? 'Enabled - click to disable' : 'Disabled - click to enable';
-      if (f.scheduled) sw.classList.add('locked');
       var cb = el('input');
       cb.type = 'checkbox';
       cb.checked = on;
       cb.disabled = !!f.scheduled;
+      cb.setAttribute('aria-label', 'Fingerprint #' + f.id + ' enabled');
       cb.onchange = function () { setPolicy(f, { enabled: cb.checked ? 1 : 0 }).catch(function (e) { cb.checked = !cb.checked; fail(e); }); };
       sw.appendChild(cb);
-      sw.appendChild(el('span', 'track'));
+      sw.appendChild(el('span'));
       head.appendChild(sw);
 
-      var body = el('div', 'finger-body');
+      var body = el('div', 'fp-body');
+      var meta = el('div', 'fp-meta');
       if (info) {
-        // the action badge sits right next to the name, the finger below
-        var line = el('div', 'fn-line');
-        line.appendChild(el('div', 'fn-name', info.name));
-        line.appendChild(el('div', 'fn-action', info.action));
-        body.appendChild(line);
-        body.appendChild(el('div', 'fn-finger', info.finger));
-      } else {
-        body.appendChild(el('div', 'fn-name' + (f.name ? '' : ' unnamed'), f.name || 'unnamed'));
+        meta.appendChild(el('span', 'fn-action', info.action));
+        meta.appendChild(el('span', 'fn-finger', info.finger));
       }
+      // state badge: schedule (green active / amber inactive, hover shows the week) or manual on/off
+      var badge;
+      if (f.scheduled) {
+        badge = el('button', 'badge fp-badge ' + (on ? 'badge-success' : 'badge-warning'), on ? 'Schedule: active' : 'Schedule: inactive');
+        badge.type = 'button';
+        badge.onmouseenter = function () { showWeekTip(badge, f); };
+        badge.onmouseleave = hideWeekTip;
+        badge.onclick = function () { openSchedule(f); };
+      } else {
+        badge = el('span', 'badge ' + (on ? 'badge-success' : 'badge-disabled'), on ? 'Active' : 'Disabled');
+      }
+      meta.appendChild(badge);
+      body.appendChild(meta);
 
-      var foot = el('div', 'finger-foot');
+      var foot = el('div', 'fp-foot');
       var schBtn = iconButton('i-clock', 'Schedule', f.scheduled ? 'set' : '', function () { openSchedule(f); }, true);
       if (f.scheduled) {
         schBtn.removeAttribute('title');
@@ -1000,7 +990,7 @@
       }
       foot.appendChild(schBtn);
       foot.appendChild(iconButton('i-edit', 'Rename', '', function () { openRename(f); }, true));
-      foot.appendChild(el('span', 'spacer'));
+      foot.appendChild(el('span', 'sys-grow'));
       foot.appendChild(iconButton('i-trash', 'Delete', 'danger icon-btn', function () {
         confirmDialog('Delete fingerprint #' + f.id + '?', (f.name || 'This fingerprint') + ' will be removed from the sensor.', 'Delete', function () {
           action('/editFingerprints?selectedFingerprint=' + f.id + '&btnDelete=1').then(function () { toast('Deleted'); return loadFingers(); }).catch(fail);
