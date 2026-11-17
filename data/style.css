@@ -456,11 +456,6 @@ h3 {
   border-bottom: none;
 }
 
-/* Doorbell: same title and first card position as the overview (its sync bar takes 3px + 8px) */
-.container:not(.dash) > .container-header {
-  padding: 15px 2px 18px;
-}
-
 /* Let page headers (title + controls) wrap on narrow screens */
 .container-header > div {
   flex-wrap: wrap;
@@ -623,8 +618,6 @@ select:invalid {
 h1, h2, h3 { margin: 0; line-height: 1.2; }
 button { font: inherit; color: inherit; }
 /* ================= cards / grids ================= */
-.card + .card, .grid + .card, .card + .grid, .grid + .grid { margin-top: 16px; }
-.grid > .card, .grid > .card + .card { margin-top: 0; }
 .card h2 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 4px; }
 .card .sub { margin: 0 0 16px; color: var(--text-secondary); font-size: 13.5px; }
 .grid { display: grid; gap: 16px; }
