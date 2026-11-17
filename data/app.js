@@ -223,18 +223,19 @@
       setUpdateAvailable(newer);
       $('updLatest').textContent = rel.tag_name;
       box.textContent = '';
+      var a = el('a', '', 'release notes');
+      a.href = rel.html_url; a.target = '_blank'; a.rel = 'noopener noreferrer';
       if (newer) {
         setBadge('warning', 'Update available');
-        box.appendChild(document.createTextNode((rel.name || rel.tag_name) + ' - '));
-        var a = el('a', '', 'view release');
-        a.href = rel.html_url; a.target = '_blank'; a.rel = 'noopener';
-        box.appendChild(a);
+        box.appendChild(document.createTextNode('Version ' + rel.tag_name + ' is ready to install. ('));
         go.hidden = false;
         go.onclick = function () { startSelfUpdate(rel.tag_name); };
       } else {
         setBadge('success', 'Up to date');
-        box.textContent = 'You are running the latest release.';
+        box.appendChild(document.createTextNode('This device runs the newest version. ('));
       }
+      box.appendChild(a);
+      box.appendChild(document.createTextNode(')'));
     }).catch(function () {
       updateChecked = false;
       setBadge('error', 'Not possible');
