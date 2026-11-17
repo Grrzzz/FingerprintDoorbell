@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-  <link rel="stylesheet" href="/style.css?v=52">
+  <link rel="stylesheet" href="/style.css?v=53">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -207,11 +207,27 @@
 
     <!-- ================= UPDATE ================= -->
     <section class="view" id="view-system-update" hidden>
-      <header><h1>Update</h1><p>New releases are looked up on GitHub by this browser.</p></header>
-      <div class="card">
-        <div class="list-row">
-          <div><div class="t">Firmware</div><div class="d" id="sysVersion2">-</div><div class="d" id="sysUpdate"></div></div>
-          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
+      <header><h1>Update</h1><p>Install new firmware and WebUI versions.</p></header>
+      <div class="sys-update">
+        <div class="stat-row">
+          <div class="stat"><div class="stat-label">Installed</div><div class="stat-value" id="sysVersion2">-</div></div>
+          <div class="stat"><div class="stat-label">Latest release</div><div class="stat-value" id="updLatest">-</div></div>
+          <div class="stat"><div class="stat-label">Sensor</div><div class="stat-value" id="updSensor">-</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span>Online update</span><button class="btn ghost sm" id="btnCheckUpdate">Check for update</button></div>
+          <div class="state-box">
+            <div class="state-main"><span class="badge" id="updBadge">Not checked</span><span class="state-text" id="sysUpdate">Look up the latest release on GitHub.</span></div>
+            <button class="btn btn-action" id="btnUpdateNow" hidden>Update now</button>
+          </div>
+          <div class="sys-spacer"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span>Manual update</span></div>
+          <div class="card-pad">
+            <p class="lead">Upload a firmware.bin or spiffs.bin file with the updater page. Flash the firmware first, then the filesystem.</p>
+            <a class="btn btn-action btn-wide" href="/update">Open updater</a>
+          </div>
         </div>
       </div>
     </section>
@@ -378,6 +394,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=52"></script>
+<script src="/app.js?v=53"></script>
 </body>
 </html>

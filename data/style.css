@@ -563,3 +563,19 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .sys-info .sys-kv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px 20px; }
 .sys-info .sys-v { margin-top: 3px; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .sys-info .sys-body > .btn { align-self: flex-start; }
+/* update view (like the reference system-update) */
+.sys-update { display: flex; flex-direction: column; gap: 16px; }
+.sys-update .card { padding: 0; }
+.sys-update .card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; font-weight: 700; font-size: 15px; }
+.sys-update .card-header + .state-box { margin-top: 4px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+.lead { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.card-pad { padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.state-box { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin: 4px 20px 0; padding: 14px 16px; border-radius: 0.9rem; background: var(--surface-2); }
+.state-box .state-main { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.state-box .state-text { color: var(--muted); font-size: 0.9rem; }
+.state-box .state-text a { color: var(--accent); }
+.sys-spacer { height: 20px; }
+.btn-action { background: var(--accent); color: #fff; text-decoration: none; text-align: center; justify-content: center; }
+.btn-wide { width: 100%; padding: 10px; font-size: 1.1rem; box-sizing: border-box; }
+.btn[hidden] { display: none; }

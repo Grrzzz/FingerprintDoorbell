@@ -208,32 +208,36 @@
   }
 
   function checkUpdate(manual) {
-    var box = $('sysUpdate');
+    var box = $('sysUpdate'), badge = $('updBadge'), go = $('btnUpdateNow');
     if (!st || (updateChecked && !manual)) return;
     updateChecked = true;
-    box.className = 'd';
-    box.textContent = 'Checking for updates...';
+    function setBadge(cls, text) { badge.className = 'badge' + (cls ? ' badge-' + cls : ''); badge.textContent = text; }
+    setBadge('', 'Checking');
+    box.textContent = 'Looking up the latest release on GitHub...';
+    go.hidden = true;
     fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (rel) {
+      var newer = isNewer(rel.tag_name, st.version);
+      setUpdateAvailable(newer);
+      $('updLatest').textContent = rel.tag_name;
       box.textContent = '';
-      setUpdateAvailable(isNewer(rel.tag_name, st.version));
-      if (isNewer(rel.tag_name, st.version)) {
-        box.className = 'd new';
-        box.appendChild(document.createTextNode('Update available: ' + (rel.name || rel.tag_name) + ' - '));
+      if (newer) {
+        setBadge('warning', 'Update available');
+        box.appendChild(document.createTextNode((rel.name || rel.tag_name) + ' - '));
         var a = el('a', '', 'view release');
         a.href = rel.html_url; a.target = '_blank'; a.rel = 'noopener';
         box.appendChild(a);
-        var go = el('button', 'btn sm', 'Update now');
-        go.style.marginLeft = '10px';
+        go.hidden = false;
         go.onclick = function () { startSelfUpdate(rel.tag_name); };
-        box.appendChild(go);
       } else {
-        box.textContent = 'You are up to date (latest release: ' + rel.tag_name + ').';
+        setBadge('success', 'Up to date');
+        box.textContent = 'You are running the latest release.';
       }
     }).catch(function () {
       updateChecked = false;
+      setBadge('error', 'Not possible');
       box.textContent = 'Could not check for updates (no internet connection in this browser?).';
     });
   }
@@ -362,7 +366,8 @@
     $('brandName').textContent = st.hostname;
     renderInfo();
     $('brandVersion').textContent = 'Firmware ' + st.version;
-    $('sysVersion2').textContent = 'Version ' + st.version;
+    $('sysVersion2').textContent = st.version;
+    $('updSensor').textContent = st.sensorConnected ? 'Connected' : 'Not found';
     $('footVersion').textContent = 'v' + String(st.version).replace(/^v/i, '');
 
     var title, cls, busy = false;
