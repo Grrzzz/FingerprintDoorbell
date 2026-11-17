@@ -1101,21 +1101,32 @@
     { id: 'GongOff', title: 'Gong disabled', sub: 'Shown while the hardware gong is switched off (highest priority).', color: 'gongOffColor', colorApi: 'gongOffColor', seq: 'gongOffSequence', seqApi: 'gongOffSequence' }
   ];
 
+  var SEQ_HINTS = { 4: 'Ring stays dark', 3: 'Steady light', 1: 'Slow fade in and out', 2: 'Flashes on and off' };
+
   function buildLed() {
     var host = $('ledCards');
     host.textContent = '';
     LED_SLOTS.forEach(function (slot) {
-      var card = el('div', 'card led-card');
-      var disc = el('div', 'sensor-disc small');
+      var card = el('section', 'card cfg-card cfg led-card');
+      var head = el('div', 'card-header');
+      var ttl = el('div', 'led-title');
+      ttl.appendChild(el('span', 'cfg-card-title', slot.title));
+      ttl.appendChild(el('span', 'led-sub', slot.sub));
+      head.appendChild(ttl);
+      var disc = el('div', 'sensor-disc led-disc');
       disc.id = 'prev' + slot.id;
+      disc.title = 'Preview';
       disc.setAttribute('data-seq', 3);
       disc.innerHTML = '<svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="42"/><circle class="ring-led" cx="50" cy="50" r="42"/></svg><svg class="fp"><use href="#i-fp"/></svg>';
-      var body = el('div', 'led-body');
-      body.appendChild(el('h3', '', slot.title));
-      body.appendChild(el('p', 'sub', slot.sub));
+      head.appendChild(disc);
+      card.appendChild(head);
 
-      var fc = el('div', 'field');
-      fc.appendChild(el('div', 'label', 'Color'));
+      var body = el('div', 'card-body cfg-body');
+      var rc = el('div', 'cfg-row cfg-l0');
+      var lc = el('div', 'cfg-label');
+      lc.appendChild(el('span', '', 'Color'));
+      rc.appendChild(lc);
+      var cc = el('div', 'cfg-ctl');
       var box = el('div', 'swatches');
       box.setAttribute('data-led', slot.color);
       for (var i = 1; i <= 7; i++) (function (idx) {
@@ -1128,29 +1139,35 @@
         b.onclick = function () { setLed(slot.colorApi, idx); };
         box.appendChild(b);
       })(i);
-      fc.appendChild(box);
-      body.appendChild(fc);
+      cc.appendChild(box);
+      rc.appendChild(cc);
+      body.appendChild(rc);
 
-      var fs = el('div', 'field');
-      fs.appendChild(el('div', 'label', 'Animation'));
-      var seg = el('div', 'seg');
-      seg.setAttribute('data-led', slot.seq);
+      var rs = el('div', 'cfg-row cfg-l0');
+      var ls = el('div', 'cfg-label');
+      ls.appendChild(el('span', '', 'Animation'));
+      rs.appendChild(ls);
+      var cs = el('div', 'cfg-ctl');
+      var opts = el('div', 'cfg-opt-cards');
+      opts.setAttribute('data-led', slot.seq);
       SEQS.forEach(function (sq) {
-        var b = el('button', '', sq.n);
+        var b = el('button', 'cfg-opt-card');
         b.type = 'button';
         b.setAttribute('data-v', sq.v);
+        b.setAttribute('aria-label', sq.n);
+        b.appendChild(el('b', '', sq.n));
+        b.appendChild(el('span', '', SEQ_HINTS[sq.v]));
         b.onclick = function () { setLed(slot.seqApi, sq.v); };
-        seg.appendChild(b);
+        opts.appendChild(b);
       });
-      fs.appendChild(seg);
-      body.appendChild(fs);
+      cs.appendChild(opts);
+      rs.appendChild(cs);
+      body.appendChild(rs);
 
-      card.appendChild(disc);
       card.appendChild(body);
       host.appendChild(card);
     });
   }
-
   function setLed(setting, value) {
     getJson('/api/led?setting=' + setting + '&value=' + value).then(function (c) { cfg = c; renderLed(); renderStatus(); toast('Saved'); }).catch(fail);
   }
@@ -1159,7 +1176,7 @@
     if (!cfg) return;
     Array.prototype.forEach.call(document.querySelectorAll('#ledCards [data-led]'), function (box) {
       var cur = cfg[box.getAttribute('data-led')];
-      Array.prototype.forEach.call(box.children, function (b) { b.classList.toggle('on', parseInt(b.getAttribute('data-v'), 10) === cur); });
+      Array.prototype.forEach.call(box.children, function (b) { var hit = parseInt(b.getAttribute('data-v'), 10) === cur; b.classList.toggle(box.classList.contains('cfg-opt-cards') ? 'cfg-on' : 'on', hit); b.setAttribute('aria-pressed', hit ? 'true' : 'false'); });
     });
     LED_SLOTS.forEach(function (slot) { paintDisc($('prev' + slot.id), cfg[slot.color], cfg[slot.seq]); });
     if (!$('ringDuration').value) $('ringDuration').value = cfg.ringDuration; // later changes belong to the user until saved or discarded

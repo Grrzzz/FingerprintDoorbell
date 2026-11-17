@@ -757,10 +757,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px 
 .input-group { position: relative; }
 .input-group button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
 
+
 .seg { display: inline-flex; background: var(--surface); border-radius: 12px; padding: 3px; gap: 2px; flex-wrap: wrap; }
 .seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; cursor: pointer; font-weight: 600; color: var(--text-secondary); }
 .seg button.on { background: var(--bg-card); color: var(--primary); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
-
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .swatch {
   width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c);
@@ -772,11 +772,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px 
 }
 .swatch.legacy { opacity: .85; }
 
-.led-card { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
-@media (max-width: 480px) { .led-card { grid-template-columns: 1fr; justify-items: center; } .led-card .led-body { width: 100%; } }
-.led-card h3 { font-size: 15px; margin-bottom: 2px; }
-.led-card .sub { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
-.led-card .field { margin-bottom: 12px; }
 
 /* ================= buttons ================= */
 .button { display: inline-flex; gap: 8px; }
@@ -2481,3 +2476,65 @@ a.nav-sub-item {
 .fp-meta .badge { margin-left: auto; }
 button.badge { border: 0; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
 .fp-foot { display: flex; align-items: center; gap: 6px; padding: 10px 16px 12px; border-top: 1px solid var(--border); }
+
+/* ---- reference: option cards ---- */
+.cfg .cfg-opt-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.cfg .cfg-opt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-speed), background var(--transition-speed);
+}
+
+.cfg .cfg-opt-card:hover {
+  border-color: var(--primary);
+}
+
+.cfg .cfg-opt-card.cfg-on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.cfg .cfg-opt-card[data-value="-1"] {
+  background: var(--surface);
+}
+
+.cfg .cfg-opt-card[data-value="-1"].cfg-on {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+}
+
+.cfg .cfg-opt-card b {
+  font-size: 0.9rem;
+}
+
+.cfg .cfg-opt-card span {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* ---- Doorbell: LED & Ring as cfg cards (color and animation rows, small preview in the header) ---- */
+.led-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: var(--card-gap); align-items: start; }
+.led-card .card-header { gap: 14px; }
+.led-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.led-sub { font-size: 0.85rem; font-weight: 400; letter-spacing: 0; color: var(--text-secondary); }
+.led-card .led-disc { flex: none; width: 48px; height: 48px; box-shadow: 0 3px 10px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .06); }
+.led-card .led-disc .ring-svg circle { stroke-width: 9; }
+.led-card.cfg .cfg-row { grid-template-columns: 110px minmax(0, 1fr); }
+@media (max-width: 560px) { .led-card.cfg .cfg-row { grid-template-columns: minmax(0, 1fr); } }
+.led-card .cfg-opt-cards { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
