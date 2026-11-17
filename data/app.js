@@ -244,40 +244,49 @@
   // the flash area is organized in 32 byte entries, show plain kilobytes
   function kb(entries) { return (entries * 32 / 1024).toFixed(1) + ' KB'; }
 
+  function renderStack(host, title, total, segments, format, note, bad) {
+    host.textContent = '';
+    host.appendChild(el('div', 'stack-title'));
+    host.firstChild.appendChild(el('span', '', title));
+    host.firstChild.appendChild(el('span', '', format(total)));
+    var bar = el('div', 'stack-bar'), legend = el('div', 'stack-legend');
+    segments.forEach(function (s) {
+      var pct = s.value * 100 / total;
+      if (s.value > 0) {
+        var seg = el('div', 'stack-seg ' + s.cls);
+        seg.style.width = pct + '%';
+        seg.title = s.label + ': ' + format(s.value);
+        bar.appendChild(seg);
+      }
+      var item = el('span');
+      item.appendChild(el('i', s.cls));
+      item.appendChild(document.createTextNode(s.label + ' '));
+      item.appendChild(el('b', '', format(s.value)));
+      item.appendChild(document.createTextNode(' (' + pct.toFixed(0) + '%)'));
+      legend.appendChild(item);
+    });
+    host.appendChild(bar);
+    host.appendChild(legend);
+    if (note) host.appendChild(el('div', 'stack-note' + (bad ? ' bad' : ''), note));
+  }
+
   function loadStorage() {
     getJson('/api/storage').then(function (d) {
       if (!d.total) return;
       var usable = d.total - d.reserved;
       var free = Math.max(0, d.total - d.reserved - d.fingers - d.settings - d.other);
-      var parts = [
-        { cls: 'st-fingers', label: 'Fingerprints', n: d.fingers },
-        { cls: 'st-settings', label: 'Settings', n: d.settings },
-        { cls: 'st-other', label: 'System and other', n: d.other },
-        { cls: 'st-free', label: 'Free', n: free },
-        { cls: 'st-reserved', label: 'Reserved', n: d.reserved }
-      ];
-      var bar = $('stStack'), legend = $('stLegend');
-      bar.textContent = '';
-      legend.textContent = '';
-      parts.forEach(function (p) {
-        if (p.n > 0) {
-          var seg = el('i', p.cls);
-          seg.style.width = (p.n * 100 / d.total) + '%';
-          seg.title = p.label + ': ' + kb(p.n) + ' of ' + kb(d.total);
-          bar.appendChild(seg);
-        }
-        var item = el('span', 'st-item');
-        item.appendChild(el('i', p.cls));
-        item.appendChild(document.createTextNode(p.label + ' ' + kb(p.n) + ' (' + Math.round(p.n * 100 / d.total) + ' %)'));
-        legend.appendChild(item);
-      });
       var perFinger = d.fingerCount > 0 && d.fingers > 0 ? d.fingers / d.fingerCount : 1.5;
       var more = Math.floor(free / Math.max(1, perFinger));
       var pct = Math.round((d.total - d.reserved - free) * 100 / usable);
-      var hint = kb(d.total - d.reserved - free) + ' of ' + kb(usable) + ' usable (' + pct + ' %). About ' + more + ' more fingerprint' + (more === 1 ? '' : 's') + ' fit.';
+      var hint = kb(d.total - d.reserved - free) + ' of ' + kb(usable) + ' usable (' + pct + '%). About ' + more + ' more fingerprint' + (more === 1 ? '' : 's') + ' fit.';
       if (pct >= 85) hint += ' Almost full: delete fingerprints or shorten names.';
-      $('stHint').textContent = hint;
-      $('stHint').style.color = pct >= 85 ? 'var(--error)' : '';
+      renderStack($('stStack'), 'Flash area for fingerprints, schedules and settings', d.total, [
+        { cls: 'seg-1', label: 'Fingerprints', value: d.fingers },
+        { cls: 'seg-2', label: 'Settings', value: d.settings },
+        { cls: 'seg-3', label: 'System and other', value: d.other },
+        { cls: 'seg-free', label: 'Free', value: free },
+        { cls: 'seg-res', label: 'Reserved', value: d.reserved }
+      ], kb, hint, pct >= 85);
     }).catch(function () {});
   }
 
@@ -356,9 +365,9 @@
     host.textContent = '';
     rows.forEach(function (r) {
       if (r[1] === undefined || r[1] === null || r[1] === '') return;
-      var cell = el('div', 'sys-kv');
-      cell.appendChild(el('div', 'sys-k', r[0]));
-      cell.appendChild(el('div', 'sys-v', String(r[1])));
+      var cell = el('div');
+      cell.appendChild(el('span', 'sys-k', r[0]));
+      cell.appendChild(el('output', '', String(r[1])));
       host.appendChild(cell);
     });
   }
@@ -369,16 +378,34 @@
     rows.forEach(function (r) {
       if (!r[1]) return;
       var c = el('span', 'chip');
-      c.appendChild(document.createTextNode(r[0] + ' '));
-      c.appendChild(el('b', '', r[1]));
+      c.appendChild(el('b', '', r[0]));
+      c.appendChild(el('output', '', String(r[1])));
       host.appendChild(c);
     });
   }
 
+  function renderSignal(rssi) {
+    var bars = document.querySelectorAll('#rssi_svg .bar');
+    var label, count;
+    if (rssi === undefined || rssi === null || isNaN(rssi)) { label = 'Offline'; count = 0; }
+    else if (rssi <= -255) { label = 'Disconnected'; count = 0; }
+    else {
+      label = rssi >= -55 ? 'Excellent' : rssi >= -67 ? 'Good' : rssi >= -78 ? 'Fair' : rssi >= -85 ? 'Weak' : 'Unreliable';
+      count = [-85, -78, -67, -55].filter(function (t) { return rssi >= t; }).length;
+      label += ' (' + rssi + ' dBm)';
+    }
+    bars.forEach(function (bar, i) {
+      var active = i < count;
+      bar.style.opacity = active ? '1' : (count ? '0.2' : '0.1');
+      bar.style.fill = active ? 'var(--primary)' : 'currentColor';
+    });
+    $('netRssi').textContent = label;
+    return label;
+  }
+
   function renderInfo() {
     var sys = st.sys || {}, sen = st.sensor || {};
-    var rssiLevel = st.rssi > -55 ? 'success' : st.rssi > -75 ? 'warning' : 'error';
-    var rssiText = st.rssi > -55 ? 'Excellent' : st.rssi > -65 ? 'Good' : st.rssi > -75 ? 'Fair' : 'Weak';
+    var rssiLevel = st.rssi >= -67 ? 'success' : st.rssi >= -78 ? 'warning' : 'error';
 
     var ok = st.sensorConnected && st.pairingValid;
     setBadge('iStatus', ok ? 'Healthy' : 'Attention', ok ? 'success' : 'error');
@@ -388,17 +415,19 @@
     $('iFingers').textContent = st.fingerCount + ' / ' + (sen.capacity || 200);
     $('iMem').textContent = fmtBytes(st.heap);
 
-    setBadge('netBadge', 'Connected - ' + rssiText, rssiLevel);
+    var sig = renderSignal(st.rssi);
+    setBadge('netBadge', 'Connected', rssiLevel);
     $('netIp').textContent = st.ip;
-    fillChips('netChips', [['Host', st.hostname], ['Mode', st.mode], ['MAC', sys.mac]]);
+    fillChips('netChips', [['Host', st.hostname], ['Mode', st.mode]]);
     fillKv('netKv', [
-      ['SSID', st.ssid], ['Signal', st.rssi + ' dBm'], ['Channel', sys.channel], ['Gateway', sys.gateway],
-      ['Netmask', sys.netmask], ['DNS', sys.dns], ['BSSID', sys.bssid]
+      ['Network name', st.ssid], ['Channel', sys.channel], ['Netmask', sys.netmask],
+      ['Gateway', sys.gateway], ['DNS', sys.dns], ['MAC address', sys.mac], ['BSSID', sys.bssid]
     ]);
 
     $('sysVersion').textContent = String(st.version);
+    $('fwChannel').textContent = /dev|develop/i.test(String(st.version)) ? 'Development' : 'Stable';
     fillKv('fwKv', [
-      ['Build', sys.build], ['SDK', sys.sdk], ['Last reset', st.resetReason],
+      ['Build time', sys.build], ['SDK', sys.sdk], ['Last reset', st.resetReason],
       ['Self-update', st.update && st.update.state ? st.update.state : undefined]
     ]);
 
@@ -412,26 +441,44 @@
       ['Sensor address', sen.address !== undefined ? '0x' + Number(sen.address).toString(16).toUpperCase() : undefined]
     ]);
 
-    fillKv('devKv', [
-      ['Chip', sys.chip], ['Revision', sys.rev], ['Cores', sys.cores], ['CPU clock', sys.mhz ? sys.mhz + ' MHz' : undefined],
-      ['Flash size', sys.flash ? Math.round(sys.flash / 1048576) + ' MB' : undefined], ['Reset reason', st.resetReason]
-    ]);
+    $('devFlash').textContent = sys.flash ? Math.round(sys.flash / 1048576) + ' MB' : '-';
+    $('devChip').textContent = sys.chip || '-';
+    fillChips('devChips', [['Cores', sys.cores], ['Revision', sys.rev], ['Clock', sys.mhz ? sys.mhz + ' MHz' : undefined]]);
+    fillKv('devKv', [['Reset reason', st.resetReason]]);
 
+    $('memFree').textContent = fmtBytes(st.heap);
+    if (sys.heapTotal && sys.heapBlock) {
+      var blk = Math.min(sys.heapBlock, st.heap);
+      var used = Math.max(0, sys.heapTotal - st.heap);
+      renderStack($('memStack'), 'Heap', sys.heapTotal, [
+        { cls: 'seg-1', label: 'Used', value: used },
+        { cls: 'seg-2', label: 'Largest free block', value: blk },
+        { cls: 'seg-3', label: 'Fragmented free', value: Math.max(0, st.heap - blk) }
+      ], fmtBytes);
+    }
     fillKv('memKv', [
-      ['Free heap', fmtBytes(st.heap)], ['Lowest free heap', sys.heapMin ? fmtBytes(sys.heapMin) : undefined],
-      ['Largest free block', sys.heapBlock ? fmtBytes(sys.heapBlock) : undefined], ['Heap size', sys.heapTotal ? fmtBytes(sys.heapTotal) : undefined]
+      ['Free heap', fmtBytes(st.heap)], ['Minimum free', sys.heapMin ? fmtBytes(sys.heapMin) : undefined],
+      ['Largest free block', sys.heapBlock ? fmtBytes(sys.heapBlock) : undefined]
     ]);
 
     var hasClock = !!st.clock;
     setBadge('timeBadge', hasClock ? 'Synchronized' : 'No time', hasClock ? 'success' : 'warning');
-    var clockText;
+    var clockText = '-';
     if (hasClock) clockText = ('0' + Math.floor(st.clock.min / 60)).slice(-2) + ':' + ('0' + st.clock.min % 60).slice(-2);
-    fillKv('timeKv', [['Device time', clockText], ['Uptime', fmtUptime(st.uptime)]]);
+    $('timeNow').textContent = clockText;
+    fillKv('timeKv', [['Uptime', fmtUptime(st.uptime)]]);
 
-    fillKv('svcKv', [
-      ['MQTT', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline'],
-      ['Broker', st.mqttServer], ['Home Assistant', st.mqtt === 'unconfigured' ? undefined : (st.haDiscovery ? 'Discovery on' : 'Discovery off')]
-    ]);
+    var list = $('svcList');
+    list.textContent = '';
+    [
+      ['MQTT', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline', st.mqtt === 'connected' ? 'success' : st.mqtt === 'unconfigured' ? 'disabled' : 'error'],
+      ['Home Assistant', st.mqtt === 'unconfigured' ? 'Not configured' : (st.haDiscovery ? 'Discovery on' : 'Discovery off'), st.mqtt !== 'unconfigured' && st.haDiscovery ? 'success' : 'disabled']
+    ].forEach(function (s) {
+      var row = el('div', 'sys-svc');
+      row.appendChild(el('span', '', s[0]));
+      row.appendChild(el('output', 'badge badge-' + s[2], s[1]));
+      list.appendChild(row);
+    });
   }
 
   // ---------- rendering: status ----------

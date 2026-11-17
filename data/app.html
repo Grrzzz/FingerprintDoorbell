@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=67">
+  <link rel="stylesheet" href="/style.css?v=68">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -150,72 +150,89 @@
     <section class="view container sys-info" id="view-system-info" hidden>
       <div class="container-header"><div class="container-title">Info</div><div class="page-sub">The essentials at a glance, all details underneath.</div></div>
       <div class="container-content">
+        <div class="sys-stats">
+          <div class="stat"><div class="stat-label">Status</div><div class="stat-value small"><output class="badge" id="iStatus">-</output></div></div>
+          <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value small"><output id="iUptime">-</output></div></div>
+          <div class="stat"><div class="stat-label">Wi-Fi signal</div><div class="stat-value small"><output id="iWifi">-</output></div></div>
+          <div class="stat"><div class="stat-label">Firmware</div><div class="stat-value small"><output id="iFw">-</output></div></div>
+          <div class="stat"><div class="stat-label">Fingerprints</div><div class="stat-value small"><output id="iFingers">-</output></div></div>
+          <div class="stat"><div class="stat-label">Memory free</div><div class="stat-value small"><output id="iMem">-</output></div></div>
+        </div>
 
-      <div class="sys-stats">
-        <div class="stat"><div class="stat-label">Status</div><div class="stat-value small"><output class="badge" id="iStatus">-</output></div></div>
-        <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value small"><output id="iUptime">-</output></div></div>
-        <div class="stat"><div class="stat-label">Wi-Fi signal</div><div class="stat-value small"><output id="iWifi">-</output></div></div>
-        <div class="stat"><div class="stat-label">Firmware</div><div class="stat-value small"><output id="iFw">-</output></div></div>
-        <div class="stat"><div class="stat-label">Fingerprints</div><div class="stat-value small"><output id="iFingers">-</output></div></div>
-        <div class="stat"><div class="stat-label">Memory free</div><div class="stat-value small"><output id="iMem">-</output></div></div>
-      </div>
-
-      <div class="sys-grid">
-        <section class="card sys-card sys-span2">
-          <div class="card-header"><span>Network</span><output class="badge" id="netBadge">-</output></div>
-          <div class="sys-body">
-            <div class="sys-hero-block"><div class="sys-hero-label">IP address</div><div class="sys-hero-num sys-mono" id="netIp">-</div></div>
-            <div class="chips" id="netChips"></div>
+        <div class="sys-grid">
+          <section class="card sys-card sys-span2">
+            <div class="card-header"><span>Network</span><output class="badge" id="netBadge">-</output></div>
+            <div class="sys-net-hero">
+              <div>
+                <div class="sys-hero-label">IPv4 address</div>
+                <output class="sys-hero-num sys-mono" id="netIp">-</output>
+                <div class="chips" id="netChips"></div>
+              </div>
+              <div class="sys-net-signal">
+                <svg id="rssi_svg" width="34" height="26" viewBox="0 0 24 16" fill="currentColor" style="overflow: visible">
+                  <rect class="bar" x="1" y="12" width="3" height="4" rx="1" />
+                  <rect class="bar" x="7" y="8" width="3" height="8" rx="1" />
+                  <rect class="bar" x="13" y="4" width="3" height="12" rx="1" />
+                  <rect class="bar" x="19" y="0" width="3" height="16" rx="1" />
+                </svg>
+                <div>
+                  <div class="sys-hero-label">Signal</div>
+                  <output id="netRssi">-</output>
+                </div>
+              </div>
+            </div>
             <div class="sys-kv-grid" id="netKv"></div>
-          </div>
-        </section>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Firmware</span></div>
-          <div class="sys-body">
-            <div class="sys-hero-block"><div class="sys-hero-label">Version</div><div class="sys-hero-num" id="sysVersion">-</div></div>
+          <section class="card sys-card">
+            <div class="card-header"><span>Firmware</span><span class="chip"><b>Release</b><output id="fwChannel">-</output></span></div>
+            <div class="sys-hero-block">
+              <div class="sys-hero-label">Version</div>
+              <output class="sys-hero-num" id="sysVersion">-</output>
+            </div>
             <div class="sys-kv-grid" id="fwKv"></div>
-            <a class="button sm" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
-          </div>
-        </section>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Fingerprint sensor</span><output class="badge" id="senBadge">-</output></div>
-          <div class="sys-body">
+          <section class="card sys-card">
+            <div class="card-header"><span>Fingerprint sensor</span><output class="badge" id="senBadge">-</output></div>
             <div class="sys-kv-grid" id="senKv"></div>
-          </div>
-        </section>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Device</span></div>
-          <div class="sys-body"><div class="sys-kv-grid" id="devKv"></div></div>
-        </section>
+          <section class="card sys-card">
+            <div class="card-header"><span>Device</span><span class="chip"><b>Flash</b><output id="devFlash">-</output></span></div>
+            <div class="sys-hero-block">
+              <div class="sys-hero-label">Chip</div>
+              <output class="sys-hero-num" id="devChip">-</output>
+              <div class="chips" id="devChips"></div>
+            </div>
+            <div class="sys-kv-grid" id="devKv"></div>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Memory</span></div>
-          <div class="sys-body"><div class="sys-kv-grid" id="memKv"></div></div>
-        </section>
+          <section class="card sys-card">
+            <div class="card-header"><span>Memory</span><span class="chip"><b>Free</b><output id="memFree">-</output></span></div>
+            <div class="stack" id="memStack"></div>
+            <div class="sys-kv-grid" id="memKv"></div>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Time</span><output class="badge" id="timeBadge">-</output></div>
-          <div class="sys-body"><div class="sys-kv-grid" id="timeKv"></div></div>
-        </section>
+          <section class="card sys-card">
+            <div class="card-header"><span>Time</span><output class="badge" id="timeBadge">-</output></div>
+            <div class="sys-hero-block">
+              <div class="sys-hero-label">Device time</div>
+              <output class="sys-hero-num sys-small" id="timeNow">-</output>
+            </div>
+            <div class="sys-kv-grid" id="timeKv"></div>
+          </section>
 
-        <section class="card sys-card">
-          <div class="card-header"><span>Services</span></div>
-          <div class="sys-body"><div class="sys-kv-grid" id="svcKv"></div></div>
-        </section>
+          <section class="card sys-card">
+            <div class="card-header"><span>Services</span></div>
+            <div class="sys-svc-list" id="svcList"></div>
+          </section>
 
-        <section class="card sys-card sys-span2">
-          <div class="card-header"><span>Storage</span></div>
-          <div class="sys-body">
-            <p class="sub">Flash area for fingerprint names, schedules and settings.</p>
+          <section class="card sys-card sys-span2">
+            <div class="card-header"><span>Storage</span></div>
             <div class="stack" id="stStack"></div>
-            <div class="stack-legend" id="stLegend"></div>
-            <div class="hint" id="stHint"></div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
       </div>
     </section>
 
@@ -411,6 +428,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=67"></script>
+<script src="/app.js?v=68"></script>
 </body>
 </html>
