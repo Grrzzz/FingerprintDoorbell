@@ -17,11 +17,11 @@ Guide for AI coding agents (and humans) working on this repository. It is the fo
 | `src/FingerprintManager.*` | sensor access, fingerprint list, per-fingerprint policy (switch + schedule), storage of names and policies, LED styles |
 | `src/SettingsManager.*` | settings structs (`AppSettings`, `WifiSettings`, `RingSettings`) and their NVS keys |
 | `src/HomeAssistantDiscovery.*` | table of Home Assistant entities and the discovery/state publishing |
-| `src/SelfUpdate.*`, `src/GithubRoots.h` | one-click update (HTTPS download from GitHub releases) and its root certificates |
+| `src/SelfUpdate.*`, `src/GithubRoots.h` | one-click update (HTTPS download of `update.zip` from GitHub releases), manual upload with the ZIP reader, and the root certificates |
 | `data/` | web interface: `app.html`, `app.js`, `style.css`, plus `wificonfig.html` (Wi-Fi setup mode, still templated by the server) |
 | `lib/` | libraries that are installed manually (the registry no longer resolves ESP Async WebServer), only a README is tracked |
 | `lib_patches/` | patches that must be applied to those libraries |
-| `tools/` | virtual device and screenshot scripts for working on the UI without hardware |
+| `tools/` | virtual device, screenshot script and `make_update_zip.py` (builds the release `update.zip`) |
 | `doc/` | images for the README, `bootloader.zip` for esptool flashing |
 
 ## Build
@@ -38,24 +38,36 @@ pio run -t buildfs       # builds spiffs.bin from data/ (web interface)
 
 ## Versioning, releases and the one-click update
 
-- The version string is `VersionInfo` in `src/main.cpp` (format `2.1 Grrzzz`). The web interface compares it with the latest GitHub release tag (`v2.1`).
-- A release (`vX.Y`) needs exactly two assets named `firmware.bin` and `spiffs.bin` (from `.pio/build/esp32doit-devkit-v1/`). The device downloads `https://github.com/Grrzzz/FingerprintDoorbell/releases/download/<tag>/firmware.bin` and `.../spiffs.bin` itself (`src/SelfUpdate.cpp`), so names and tag format (`v` followed by digits and dots) must not change.
-- Release notes go into the GitHub release, in English, with the SHA-256 of both files and a short manual update guide (firmware first, then filesystem).
-- `src/GithubRoots.h` holds the root certificates (USERTrust ECC for github.com, ISRG Root X1 for the release CDN). If GitHub changes its chain the update fails with a connection error and the certificates have to be replaced. The manual updater at `/update` keeps working.
-- Update order in the self-update is **filesystem first, then firmware**, after both files were checked. A failed run can simply be repeated.
+- The version string is `VersionInfo` in `src/main.cpp` (format `2.1 Grrzzz`). The web interface compares it with the latest GitHub release tag (`v2.1`, `isNewer()` in `app.js`).
+- **Dev and modified builds** have no clean version (anything not starting with `<major>.<minor>`, for example `Develop: develop @ 1a2b3c4`, or a version ending in `+`). `isNewer()` always offers the official release to them, so a test build can always get back onto a release. Test it with `python tools/mockdevice.py 8090 "Develop: develop @ 1a2b3c4"`.
+- A release `vX.Y` has one asset for the device, **`update.zip`**, containing `spiffs.bin` first and `firmware.bin` second, both **stored** (not compressed, the device unpacks the stream while receiving it and has no inflate code). Attach `firmware.bin` and `spiffs.bin` as well for flashing with esptool. The device downloads `https://github.com/Grrzzz/FingerprintDoorbell/releases/download/<tag>/update.zip` (`src/SelfUpdate.cpp`), so the name and tag format (`v` followed by digits and dots) must not change.
+- `src/GithubRoots.h` holds the root certificates (USERTrust ECC for github.com, ISRG Root X1 for the release CDN). If GitHub changes its chain the update fails with a connection error and the certificates have to be replaced. The manual upload keeps working.
+- Update order is **filesystem first, then firmware**, in one stream. A failed run can simply be repeated. The ZIP reader refuses compressed entries, data descriptors and a wrong order with a clear message.
+
+### Creating a release (only when the owner asks)
+
+1. Set `VersionInfo` in `src/main.cpp` to `X.Y Grrzzz` and bump the cache parameter in `data/app.html` if the web interface changed. **The version must be changed before building**, an old build still carries the old string and would offer itself as an update forever.
+2. Update `README.md` (what is new, screenshots from the mock) and commit everything. Do not build from a dirty tree.
+3. Build: `pio run`, `touch`/save `src/main.cpp` if the version looks stale, then `pio run -t buildfs`.
+4. `python tools/make_update_zip.py vX.Y` checks that `VersionInfo` matches the tag and is inside `firmware.bin`, builds `update.zip` and prints the SHA-256 of all three files.
+5. Tag `vX.Y` (annotated) on the commit that was built. A commit after the build makes the binary differ from the tag.
+6. After the owner's OK: push `develop` and the tag, create the GitHub release (title `X.Y Grrzzz`) with `update.zip`, `firmware.bin`, `spiffs.bin`. The device asks `releases/latest`, so do not mark a test release as latest.
+7. Release notes (English): "What is new", "Installation" (update on the Update page, or upload `update.zip` there; first install or recovery: esptool with `bootloader.zip`, `firmware.bin`, `spiffs.bin`), the SHA-256 of the three files, and the line that the release is built and checked but **not a full device test** if that is true.
+8. If a tag has to move after publishing: `git push --force origin vX.Y` and replace the assets with the rebuilt files.
+
+### Migration from the old updater
+
+Firmware before this change contains ElegantOTA at `/update` and downloads `firmware.bin`/`spiffs.bin` itself. The new firmware has no `/update` any more. A device on old firmware gets onto the new version once through the old way: either its one-click update (it downloads `firmware.bin` and `spiffs.bin`, so the first release with `update.zip` must also carry both files), or ElegantOTA with `firmware.bin` first and `spiffs.bin` as `filesystem` second. From then on `update.zip` is used.
 
 ## Manual update and flashing (for testing on a device)
 
-The device exposes ElegantOTA at `/update`:
+The Update page has a file picker for `update.zip` (or a plain `firmware.bin`). The same works with curl:
 
 ```
-curl -F "MD5=<md5 of file>" -F "file=@firmware.bin;filename=firmware.bin" http://<device>/update
-cp spiffs.bin filesystem
-curl -F "MD5=<md5 of file>" -F "file=@filesystem;filename=filesystem" http://<device>/update
+curl -F "file=@update.zip" http://<device>/api/update/upload
 ```
 
-The `MD5` field must come first, a file whose name is `filesystem` goes to SPIFFS. Flash `firmware.bin` first, wait for the restart (about 30 s), then `spiffs.bin`. The endpoint sometimes answers `400` right after a reboot, wait a few seconds and repeat. **Do not flash devices that are not yours or production devices without the owner's approval.**
-
+The device unpacks the stream, installs the filesystem and then the firmware, answers `{"ok":true}` and restarts (about 30 s). This is the only `POST` endpoint of the firmware, it exists because it carries a file. A plain `firmware.bin` installs the firmware only, the web interface stays as it is. **Do not flash devices that are not yours or production devices without the owner's approval.**
 ## Web interface rules (`data/`)
 
 - Vanilla JS in one IIFE (`app.js`), DOM built with the `el(tag, cls, text)` helper, no `innerHTML` with data from the device (names are user input).
@@ -68,7 +80,7 @@ The `MD5` field must come first, a file whose name is `filesystem` goes to SPIFF
 
 ## HTTP API conventions (`src/main.cpp`)
 
-All endpoints are `GET`, answer JSON via `sendJson()` and have no authentication (the device is meant for a trusted network). `/api/status`, `/api/fingerprints`, `/api/settings`, `/api/led`, `/api/control`, `/api/finger/policy`, `/api/storage`, `/api/enroll/cancel`, `/api/selfupdate/start` are listed in the README. Static files and the SPA are served with `Cache-Control: no-cache`. The old template placeholders (`processor()`) are only used by `wificonfig.html`.
+All endpoints are `GET` (except the file upload `POST /api/update/upload`), answer JSON via `sendJson()` and have no authentication (the device is meant for a trusted network). `/api/status`, `/api/fingerprints`, `/api/settings`, `/api/led`, `/api/control`, `/api/finger/policy`, `/api/storage`, `/api/enroll/cancel`, `/api/selfupdate/start` are listed in the README. Static files and the SPA are served with `Cache-Control: no-cache`. The old template placeholders (`processor()`) are only used by `wificonfig.html`.
 
 ## Fingerprints, schedules and storage
 

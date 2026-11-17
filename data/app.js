@@ -113,20 +113,23 @@
   var RELEASES_API = 'https://api.github.com/repos/Grrzzz/FingerprintDoorbell/releases/latest';
   var updateChecked = false;
 
+  // Release versions look like "2.1 Grrzzz" or "v2.1". Dev builds ("Develop: branch @ hash", no release tag) and
+  // modified builds (version + "+") have no clean version and can always be replaced by an official release.
   function versionParts(v) {
-    var m = /(\d+)(?:\.(\d+))?(?:\.(\d+))?/.exec(v || '');
-    return m ? [parseInt(m[1], 10), parseInt(m[2] || '0', 10), parseInt(m[3] || '0', 10)] : [0, 0, 0];
+    var m = /^\s*v?(\d+)\.(\d+)(?:\.(\d+))?/i.exec(v || '');
+    return m ? [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3] || '0', 10)] : null;
   }
 
-  function isNewer(a, b) {
-    var x = versionParts(a), y = versionParts(b);
-    for (var i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
-    return false;
+  function isNewer(candidate, installed) {
+    var a = versionParts(candidate), b = versionParts(installed);
+    if (!a) return false;
+    if (!b) return true;
+    for (var i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
+    return /\+\s*$/.test(String(installed || ''));
   }
-
   // one-click update: the device downloads firmware and web interface from the GitHub release itself
   function startSelfUpdate(tag) {
-    confirmDialog('Update to ' + tag + '?', 'The device downloads the new web interface and firmware from GitHub and restarts. This takes a few minutes. Do not unplug it meanwhile.', 'Update', function () {
+    confirmDialog('Update to ' + tag + '?', 'The device downloads update.zip from GitHub, installs it and restarts. This takes a few minutes. Do not unplug it meanwhile.', 'Update', function () {
       fetch('/api/selfupdate/start?tag=' + encodeURIComponent(tag), { cache: 'no-store' }).then(function (r) {
         return r.text().then(function (t) { if (!r.ok) throw new Error(t || 'HTTP ' + r.status); });
       }).then(function () { watchSelfUpdate(tag); }).catch(function (e) { toast('Update not started: ' + e.message, true); });
@@ -166,6 +169,52 @@
     })();
   }
 
+  // manual update: upload update.zip (or firmware.bin) to the device, it unpacks and installs it itself
+  function setupUpload() {
+    var file = $('updFile'), btn = $('btnUpload'), txt = $('updPickText');
+    file.onchange = function () {
+      var f = file.files[0];
+      var ok = !!f && /\.(zip|bin)$/i.test(f.name) && f.size > 0 && f.size <= 3 * 1024 * 1024;
+      txt.textContent = f ? f.name + ' (' + Math.round(f.size / 1024) + ' KB)' : 'Choose update.zip';
+      if (f && !ok) toast('Choose update.zip or firmware.bin (max 3 MB)', true);
+      btn.disabled = !ok;
+    };
+    btn.onclick = function () {
+      var f = file.files[0];
+      if (!f) return;
+      confirmDialog('Install ' + f.name + '?', 'The device installs the update and restarts. Do not unplug it meanwhile.', 'Install', function () { uploadUpdate(f); });
+    };
+  }
+
+  function uploadUpdate(f) {
+    $('ovTitle').textContent = 'Uploading ' + f.name;
+    $('ovText').textContent = 'Starting...';
+    $('ovBar').style.width = '0%';
+    $('ovBarWrap').hidden = false;
+    $('overlay').hidden = false;
+    var fail = function (msg) {
+      $('overlay').hidden = true;
+      $('ovBarWrap').hidden = true;
+      toast('Update failed: ' + msg, true);
+    };
+    var fd = new FormData();
+    fd.append('file', f, f.name);
+    var x = new XMLHttpRequest();
+    x.open('POST', '/api/update/upload');
+    x.upload.onprogress = function (ev) {
+      if (!ev.lengthComputable) return;
+      var p = Math.round(ev.loaded * 100 / ev.total);
+      $('ovText').textContent = 'Uploading and installing (' + p + ' %)';
+      $('ovBar').style.width = p + '%';
+    };
+    x.onload = function () {
+      if (x.status !== 200) { fail(x.responseText || 'HTTP ' + x.status); return; }
+      $('ovBarWrap').hidden = true;
+      restartOverlay('Restarting...');
+    };
+    x.onerror = function () { fail('connection lost'); };
+    x.send(fd);
+  }
   // ---------- storage chart ----------
   // the flash area is organized in 32 byte entries, show plain kilobytes
   function kb(entries) { return (entries * 32 / 1024).toFixed(1) + ' KB'; }
@@ -369,7 +418,7 @@
     $('brandVersion').textContent = 'Firmware ' + st.version;
     $('sysVersion2').textContent = st.version;
     $('updSensor').textContent = st.sensorConnected ? 'Connected' : 'Not found';
-    $('footVersion').textContent = 'v' + String(st.version).replace(/^v/i, '');
+    $('footVersion').textContent = (/^\d/.test(String(st.version)) ? 'v' : '') + String(st.version).replace(/^v/i, '');
 
     var title, cls, busy = false;
     if (!st.sensorConnected) { title = 'Sensor not found'; cls = 'state-bad'; }
@@ -1127,6 +1176,7 @@
   // ---------- init ----------
   function init() {
     buildLed();
+    setupUpload();
     window.addEventListener('hashchange', route);
     $('updateHint').onclick = function () { location.hash = '#system/update'; };
     $('burger').onclick = function () { setDrawer(!document.body.classList.contains('nav-open')); };

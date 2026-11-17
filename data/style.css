@@ -579,3 +579,6 @@ dialog::backdrop { background: rgba(5, 8, 16, .55); backdrop-filter: blur(3px); 
 .btn-action { background: var(--accent); color: #fff; text-decoration: none; text-align: center; justify-content: center; }
 .btn-wide { width: 100%; padding: 10px; font-size: 1.1rem; box-sizing: border-box; }
 .btn[hidden] { display: none; }
+.sys-update .pick { display: flex; align-items: center; justify-content: center; padding: 22px 16px; border: 1.5px dashed var(--line); border-radius: 0.55rem; color: var(--muted); cursor: pointer; text-align: center; word-break: break-all; transition: border-color .2s, background .2s; }
+.sys-update .pick:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.sys-update .btn-wide:disabled { opacity: .5; cursor: not-allowed; }

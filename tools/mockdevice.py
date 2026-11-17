@@ -2,13 +2,15 @@
 
 Serves the web interface from ../data and answers the JSON API with made up data
 (no real device, names, addresses or credentials involved).
-Usage: python mockdevice.py [port]
+Usage: python mockdevice.py [port] [version]
+The optional version simulates the installed firmware, e.g. "Develop: develop @ 1a2b3c4" or "2.1 Grrzzz+" (dev/modified builds can always update).
 Demo states via query string: /?demo=enroll|schedule|picker|hover|update&theme=dark
 """
 import json, os, re, sys, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8090
+VERSION = sys.argv[2] if len(sys.argv) > 2 else '2.1 Grrzzz'
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
 TYPES = {'.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css'}
 
@@ -46,7 +48,7 @@ STATUS = {
     'hostname': 'FingerprintDoorbell', 'version': '2.1 Grrzzz', 'uptime': 3 * 86400 + 5 * 3600 + 1260, 'rssi': -52, 'ssid': 'MyWiFi',
     'ip': '192.168.1.50', 'heap': 218000, 'mode': 'scan', 'sensorConnected': True, 'pairingValid': True, 'mqtt': 'connected',
     'mqttServer': 'mqtt.example.local:1883', 'haDiscovery': True, 'ignoreTouch': False, 'ringEnabled': True, 'fingerCount': len(FINGERS),
-    'update': {'state': 'idle', 'percent': 0, 'message': ''}, 'resetReason': 'power on',
+    'update': "setTimeout(function(){location.hash='#system/update';var b=document.getElementById('updBadge');b.className='badge badge-warning';b.textContent='Update available';var s=document.getElementById('sysUpdate');s.textContent='Version v2.2 is ready to install. (release notes)';document.getElementById('btnUpdateNow').hidden=false;},1500);",
     'storage': {'used': 230, 'total': 630},
     'sensor': {'capacity': 200, 'security': 3, 'templates': 12, 'packetLen': 128, 'baud': 57600, 'status': 12, 'address': 4294967295},
     'sys': {'chip': 'ESP32', 'rev': 1, 'cores': 2, 'mhz': 240, 'flash': 4194304, 'heapMin': 152000, 'heapBlock': 110000, 'heapTotal': 295000,
@@ -73,6 +75,7 @@ DEMOS = {
 
 
 def page(query):
+    STATUS['version'] = VERSION
     STATUS['mode'] = 'scan'
     STATUS['log'] = list(LOG)
     html = open(os.path.join(DATA, 'app.html'), encoding='utf-8').read()
@@ -105,6 +108,13 @@ class H(BaseHTTPRequestHandler):
     def j(self, obj):
         self.send(200, json.dumps(obj).encode())
 
+    def do_POST(self):
+        n = int(self.headers.get('Content-Length', '0'))
+        data = self.rfile.read(n) if n else b''
+        if self.path.split('?')[0] == '/api/update/upload':
+            ok = b'filename=' in data[:400] and (b'.zip' in data[:400] or b'.bin' in data[:400])
+            return self.send(200 if ok else 400, b'{"ok":true}' if ok else b'choose update.zip or firmware.bin', 'application/json' if ok else 'text/plain')
+        self.send(404, b'not found', 'text/plain')
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         path, q = u.path, urllib.parse.parse_qs(u.query)
@@ -113,6 +123,7 @@ class H(BaseHTTPRequestHandler):
         if path == '/events':
             return self.send(204, b'')
         if path == '/api/status':
+            STATUS['version'] = VERSION
             return self.j(STATUS)
         if path == '/api/fingerprints':
             return self.j(FINGERS)

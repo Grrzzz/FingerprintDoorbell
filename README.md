@@ -27,7 +27,7 @@ A fingerprint reader that doubles as a doorbell: an **ESP32** and a **Grow R503*
 | **Fingerprint schedules** | Switch fingerprints on and off, or let up to four weekly time windows per fingerprint decide. |
 | **Disabled fingerprints are visible** | A switched off finger rings like an unknown finger and is reported as a "disabled match" to MQTT and Home Assistant. |
 | **Configurable LED ring** | Color and animation for ready, finger detected, match, touch ring ignored and gong disabled. |
-| **One-click update** | The device downloads firmware and web interface from the GitHub release itself. |
+| **One-click update** | The device downloads `update.zip` (web interface and firmware) from the GitHub release itself. |
 | **Storage meter** | Shows what the flash area for names, schedules and settings holds. |
 | **Smaller firmware** | 181 KB saved by removing unused code, leaving room for the new features. |
 
@@ -183,6 +183,7 @@ The web interface uses a small API that you can use from scripts. There is no au
 | `GET /api/storage` | usage of the settings flash area |
 | `GET /api/enroll/cancel` | cancel a running enrollment |
 | `GET /api/selfupdate/start?tag=v2.1` | start the one-click update to a release of this fork |
+| `POST /api/update/upload` | manual update: multipart upload of `update.zip` (or a plain `firmware.bin`), the only POST endpoint |
 
 ## Hardware and wiring
 
@@ -245,16 +246,11 @@ After that open **Connectivity** to enter your MQTT broker and start enrolling f
 
 ## Updating an existing device
 
-**From 2.1 on: one click.** When the Firmware card on the System page reports a newer release, click **Update now**. The device checks both release files, installs the web interface, installs the firmware and restarts; a progress bar shows the steps. If something fails, the update stops with an error message and you can simply start it again.
+**One click.** When the Update page (System, *Update*) reports a newer release, click **Update now**. The device downloads `update.zip` from the release, installs the web interface, then the firmware, and restarts; a progress bar shows the steps. If something fails, the update stops with an error message and you can simply start it again. A device with a development or modified build is always offered the latest release.
 
-**From older versions, or manually (over the air):**
+**Manually (over the air):** download `update.zip` from the [release](https://github.com/Grrzzz/FingerprintDoorbell/releases/latest), open System, *Update*, choose the file under *Manual update* and click **Install**. The device unpacks it, installs the web interface and the firmware and restarts. From the command line: `curl -F "file=@update.zip" http://<device>/api/update/upload`. A plain `firmware.bin` also works (firmware only).
 
-1. Download `firmware.bin` and `spiffs.bin` from the [release](https://github.com/Grrzzz/FingerprintDoorbell/releases/latest).
-2. Open `http://<device>/update` (System, *Open updater*).
-3. Select **Firmware**, upload `firmware.bin` and wait for the restart.
-4. The page may look broken for a moment, the new firmware still has the old web interface. Open `/update` again, select **Filesystem**, upload `spiffs.bin`.
-5. Reload the page with Ctrl+F5.
-
+**From a version before the `update.zip` update:** these versions still have the old updater at `http://<device>/update` (ElegantOTA) and download `firmware.bin` and `spiffs.bin`. Update once the old way, either with *Update now* (the release also carries both files) or at `/update`: select **Firmware**, upload `firmware.bin`, wait for the restart, open `/update` again, select **Filesystem**, upload `spiffs.bin`, then reload with Ctrl+F5. The new firmware has no `/update` page any more, from then on use `update.zip`.
 Your Wi-Fi, MQTT settings, fingerprints and sensor pairing are kept, also when coming from the official version.
 
 > **Note on 2.1:** names and schedules of the fingerprints are moved to a more compact storage format the first time 2.1 starts. This is automatic and keeps all data. Older firmware versions cannot read the new format, so after going back to 2.0.x or the official release the fingerprints are still on the sensor but their names are missing. Update again to get them back.
@@ -270,4 +266,4 @@ Two notes:
 
 ## Credits
 
-This project is based on [FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) by frickelzeugs. Thanks to TheMaskedDeveloper for the idea and the R503 color handling of [PR #26](https://github.com/frickelzeugs/FingerprintDoorbell/pull/26), which was merged into this fork. The web interface of the official firmware uses [AsyncElegantOTA](https://github.com/ayushsharma82/AsyncElegantOTA) for the manual updater. Screenshots in this README were created from a virtual device with made-up data.
+This project is based on [FingerprintDoorbell](https://github.com/frickelzeugs/FingerprintDoorbell) by frickelzeugs. Thanks to TheMaskedDeveloper for the idea and the R503 color handling of [PR #26](https://github.com/frickelzeugs/FingerprintDoorbell/pull/26), which was merged into this fork. Screenshots in this README were created from a virtual device with made-up data.
