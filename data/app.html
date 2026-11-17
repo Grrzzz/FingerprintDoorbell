@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>(function(){var m="auto";try{m=localStorage.getItem("theme")||"auto";}catch(e){}var d=m==="dark"||(m!=="light"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.add(d?"dark":"light");})();</script>
-  <link rel="stylesheet" href="/style.css?v=73">
+  <link rel="stylesheet" href="/style.css?v=74">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -79,48 +79,97 @@
     <div class="view-host" id="view">
 
     <!-- ================= OVERVIEW ================= -->
-    <section class="view container" id="view-overview">
-      <div class="container-header"><div class="container-title">Overview</div><div class="page-sub">Live status of your doorbell.</div></div>
-      <div class="container-content">
-
-      <div class="card hero">
-        <div class="sensor-disc" id="heroDisc" data-seq="3">
-          <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="44"/><circle class="ring-led" cx="50" cy="50" r="44"/></svg>
-          <svg class="fp"><use href="#i-fp"/></svg>
-        </div>
+    <section class="view container dash is-syncing" id="view-overview">
+      <div class="dash-syncbar" aria-hidden="true"></div>
+      <header class="dash-head">
         <div>
-          <h2 id="heroTitle">Connecting&hellip;</h2>
-          <p id="heroSub">&nbsp;</p>
-          <div class="chips" id="chips"></div>
+          <div class="container-title">Overview</div>
+          <div class="page-sub">Live status of your doorbell.</div>
         </div>
+        <span class="dash-sync" role="status">Updating ...</span>
+      </header>
+
+      <main class="dash-grid">
+        <div class="dash-side">
+          <div class="dash-sequences">
+            <div class="card dash-hero">
+              <div class="dash-hero-label">Doorbell</div>
+              <div class="dash-hero-value" id="heroTitle">--</div>
+              <div class="dash-hero-note" id="heroSub"></div>
+            </div>
+          </div>
+
+          <div class="dash-stats">
+            <div class="stat wide">
+              <div class="stat-label dash-state-head">
+                <span>Last event</span>
+                <span class="dash-pill" id="tEventTime" hidden></span>
+              </div>
+              <div class="stat-value small"><output id="tEvent">--</output></div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Fingerprints</div>
+              <div class="stat-value"><output id="tFingers">--</output></div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Uptime</div>
+              <div class="stat-value"><output id="tUptime">--</output></div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Services</div>
+              <div class="dash-services">
+                <div class="dash-service"><span>Sensor</span><span class="badge" id="svcSensor"></span></div>
+                <div class="dash-service"><span>MQTT</span><span class="badge" id="svcMqtt"></span></div>
+                <div class="dash-service" id="svcHaBox"><span>Home Assistant</span><span class="badge" id="svcHa"></span></div>
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Free memory</div>
+              <div class="stat-value"><output id="tHeap">--</output></div>
+            </div>
+            <div class="stat wide">
+              <div class="stat-label">Wi-Fi signal</div>
+              <div class="stat-value small">
+                <svg class="dash-rssi" id="tRssiSvg" width="20" height="16" viewBox="0 0 24 16" fill="currentColor" style="overflow: visible">
+                  <rect class="bar" x="1" y="12" width="3" height="4" rx="1" />
+                  <rect class="bar" x="7" y="8" width="3" height="8" rx="1" />
+                  <rect class="bar" x="13" y="4" width="3" height="12" rx="1" />
+                  <rect class="bar" x="19" y="0" width="3" height="16" rx="1" />
+                </svg>
+                <output id="tRssi">-</output>
+              </div>
+            </div>
+            <div class="stat wide">
+              <div class="stat-label">IP address</div>
+              <div class="stat-value small"><output id="tIp">--</output></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card dash-image dash-sensor">
+          <div class="sensor-disc" id="heroDisc" data-seq="3">
+            <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-track" cx="50" cy="50" r="44"/><circle class="ring-led" cx="50" cy="50" r="44"/></svg>
+            <svg class="fp"><use href="#i-fp"/></svg>
+          </div>
+          <div class="dash-sensor-cap"><span class="dash-sensor-title">Touch ring</span><span id="heroRing">--</span></div>
+        </div>
+      </main>
+
+      <div class="dash-row">
+        <section class="card cfg-card cfg dash-controls">
+          <div class="card-header"><span class="cfg-card-title">Controls</span></div>
+          <div class="card-body cfg-body">
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Ignore touch ring</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swIgnore" aria-label="Ignore touch ring"><span></span></label></span><span class="cfg-hint">Ignore the touch ring, e.g. while it rains.</span></div></div>
+            <div class="cfg-row cfg-l0"><div class="cfg-label"><span>Hardware gong</span></div><div class="cfg-ctl"><span class="cfg-switch-wrap"><label class="cfg-switch"><input type="checkbox" id="swRing" aria-label="Hardware gong"><span></span></label></span><span class="cfg-hint">Ring the connected gong on unknown fingers.</span></div></div>
+          </div>
+        </section>
       </div>
 
-      <div class="grid cols-2">
-        <div class="card toggle-row">
-          <div><div class="t">Ignore touch ring</div><div class="d">Ignore the touch ring, e.g. while it rains.</div></div>
-          <label class="switch"><input type="checkbox" id="swIgnore"><span class="track"></span></label>
-        </div>
-        <div class="card toggle-row">
-          <div><div class="t">Hardware gong</div><div class="d">Ring the connected gong on unknown fingers.</div></div>
-          <label class="switch"><input type="checkbox" id="swRing"><span class="track"></span></label>
-        </div>
-      </div>
-
-      <div class="grid tiles">
-        <div class="card tile"><div class="k">Fingerprints</div><div class="v" id="tFingers">-</div></div>
-        <div class="card tile"><div class="k">Uptime</div><div class="v" id="tUptime">-</div></div>
-        <div class="card tile"><div class="k">Wi-Fi</div><div class="v"><span class="bars" id="tBars"><i></i><i></i><i></i><i></i></span><span id="tRssi">-</span></div></div>
-        <div class="card tile"><div class="k">IP address</div><div class="v" id="tIp">-</div></div>
-        <div class="card tile"><div class="k">Free memory</div><div class="v" id="tHeap">-</div></div>
-        <div class="card tile"><div class="k">Last event</div><div class="v" id="tEvent">-</div></div>
-      </div>
-
-      <div class="card">
-        <h2>Activity</h2>
-        <p class="sub">Latest messages from the device.</p>
-        <div class="log" id="log"><div class="empty">No messages yet.</div></div>
-      </div>
-      </div>
+      <section class="card dash-activity">
+        <div class="card-header"><span>Activity</span></div>
+        <div class="dash-activity-sub">Latest messages from the device.</div>
+        <div class="dash-console" id="log" aria-live="polite"><span class="dash-log-empty">Loading ...</span></div>
+      </section>
     </section>
 
     <!-- ================= FINGERPRINTS ================= -->
@@ -444,6 +493,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=73"></script>
+<script src="/app.js?v=74"></script>
 </body>
 </html>

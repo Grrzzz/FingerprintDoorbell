@@ -388,7 +388,11 @@
   }
 
   function renderSignal(rssi) {
-    var bars = document.querySelectorAll('#rssi_svg .bar');
+    return renderBars('#rssi_svg .bar', rssi, 'netRssi');
+  }
+
+  function renderBars(selector, rssi, outId) {
+    var bars = document.querySelectorAll(selector);
     var label, count;
     if (rssi === undefined || rssi === null || isNaN(rssi)) { label = 'Offline'; count = 0; }
     else if (rssi <= -255) { label = 'Disconnected'; count = 0; }
@@ -402,7 +406,7 @@
       bar.style.opacity = active ? '1' : (count ? '0.2' : '0.1');
       bar.style.fill = active ? 'var(--primary)' : 'currentColor';
     });
-    $('netRssi').textContent = label;
+    $(outId).textContent = label;
     return label;
   }
 
@@ -517,53 +521,55 @@
     else { title = 'Ready'; cls = 'state-ok'; }
     var h = $('heroTitle');
     h.textContent = title;
-    h.className = cls;
+    h.className = 'dash-hero-value ' + cls;
+    $('view-overview').classList.remove('is-syncing');
 
     var e = st.lastEvent, sub = 'Waiting for a finger.';
-    if (e && e.type === 'match') sub = 'Last: ' + (e.name || 'finger #' + e.id) + ' recognized (confidence ' + e.confidence + ')' + (e.time ? ' - ' + e.time : '');
-    else if (e && e.type === 'ring') sub = 'Last: unknown finger rang the bell' + (e.time ? ' - ' + e.time : '');
-    else if (e && e.type === 'disabled') sub = 'Last: disabled fingerprint ' + (e.name || '#' + e.id) + ' detected, treated as unknown' + (e.time ? ' - ' + e.time : '');
     if (!st.sensorConnected) sub = 'Check the wiring of the fingerprint sensor.';
-    else if (!st.pairingValid) sub = 'Matches are not sent until the sensor is paired again (System).';
+    else if (!st.pairingValid) sub = 'Matches are not sent until the sensor is paired again (Setup).';
+    else if (st.mode === 'enroll') sub = 'A new fingerprint is being enrolled.';
+    else if (st.ignoreTouch) sub = 'The touch ring is ignored, only the bell button works.';
     $('heroSub').textContent = sub;
 
-    var disc = $('heroDisc');
+    var evText = 'No event yet', evTime = '';
+    if (e && e.type === 'match') evText = (e.name || 'Finger #' + e.id) + ' recognized (confidence ' + e.confidence + ')';
+    else if (e && e.type === 'ring') evText = 'Unknown finger rang the bell';
+    else if (e && e.type === 'disabled') evText = 'Disabled fingerprint ' + (e.name || '#' + e.id) + ', treated as unknown';
+    if (e && e.time) evTime = String(e.time).replace(/^\d{4}-\d{2}-\d{2}\s+/, '');
+    $('tEvent').textContent = evText;
+    $('tEventTime').textContent = evTime;
+    $('tEventTime').hidden = !evTime;
+
+    var disc = $('heroDisc'), ringText;
     disc.classList.toggle('busy', busy);
     if (cfg) {
-      if (!st.ringEnabled) paintDisc(disc, cfg.gongOffColor, cfg.gongOffSequence);        // gong disabled
-      else if (st.ignoreTouch) paintDisc(disc, cfg.ignoreColor, cfg.ignoreSequence);       // ignore touch ring
-      else paintDisc(disc, cfg.touchRingActiveColor, cfg.touchRingActiveSequence);
+      var ci, sq;
+      if (!st.ringEnabled) { ci = cfg.gongOffColor; sq = cfg.gongOffSequence; ringText = 'Gong off'; }
+      else if (st.ignoreTouch) { ci = cfg.ignoreColor; sq = cfg.ignoreSequence; ringText = 'Ignoring touch'; }
+      else { ci = cfg.touchRingActiveColor; sq = cfg.touchRingActiveSequence; ringText = 'Ready'; }
+      paintDisc(disc, ci, sq);
+      var cn = COLORS[ci] ? COLORS[ci].n : '', sn = SEQS.filter(function (x) { return x.v === Number(sq); })[0];
+      ringText += (cn || sn) ? ' - ' + [cn, sn ? sn.n.toLowerCase() : ''].filter(Boolean).join(', ') : '';
     }
+    if (busy) ringText = title;
+    $('heroRing').textContent = ringText || '--';
 
-    var chips = $('chips');
-    chips.textContent = '';
-    function chip(label, level) {
-      var c = el('span', 'chip');
-      c.appendChild(el('span', 'dot ' + level));
-      c.appendChild(document.createTextNode(label));
-      chips.appendChild(c);
-    }
-    chip(st.sensorConnected ? 'Sensor connected' : 'Sensor missing', st.sensorConnected ? 'ok' : 'bad');
-    chip(st.mqtt === 'connected' ? 'MQTT connected' : st.mqtt === 'unconfigured' ? 'MQTT not configured' : 'MQTT offline',
-      st.mqtt === 'connected' ? 'ok' : st.mqtt === 'unconfigured' ? 'warn' : 'bad');
-    if (st.mqtt !== 'unconfigured') chip(st.haDiscovery ? 'Home Assistant' : 'Discovery off', st.haDiscovery ? 'ok' : '');
-    chip(st.pairingValid ? 'Paired' : 'Not paired', st.pairingValid ? 'ok' : 'bad');
+    setBadge('svcSensor', st.sensorConnected ? (st.pairingValid ? 'Paired' : 'Not paired') : 'Missing',
+      st.sensorConnected && st.pairingValid ? 'success' : 'error');
+    setBadge('svcMqtt', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline',
+      st.mqtt === 'connected' ? 'success' : st.mqtt === 'unconfigured' ? 'disabled' : 'error');
+    $('svcHaBox').hidden = st.mqtt === 'unconfigured';
+    setBadge('svcHa', st.haDiscovery ? 'Discovery on' : 'Discovery off', st.haDiscovery ? 'success' : 'disabled');
 
     $('swIgnore').checked = st.ignoreTouch;
     $('swRing').checked = st.ringEnabled;
 
-    $('tFingers').innerHTML = '';
-    $('tFingers').appendChild(document.createTextNode(String(st.fingerCount)));
-    var s = el('small', '', ' / 200');
-    $('tFingers').appendChild(s);
+    $('tFingers').textContent = String(st.fingerCount);
+    $('tFingers').appendChild(el('small', 'stat-of', '/ 200'));
     $('tUptime').textContent = fmtUptime(st.uptime);
     $('tIp').textContent = st.ip;
     $('tHeap').textContent = fmtBytes(st.heap);
-    $('tRssi').textContent = '';
-    $('tRssi').appendChild(document.createTextNode(st.rssi + ' dBm'));
-    var level = st.rssi > -55 ? 4 : st.rssi > -65 ? 3 : st.rssi > -75 ? 2 : 1;
-    Array.prototype.forEach.call($('tBars').children, function (b, i) { b.className = i < level ? 'on' : ''; });
-    $('tEvent').textContent = (e && e.type === 'match') ? shortName(e.name || '#' + e.id) : (e && e.type === 'ring') ? 'Ring' : (e && e.type === 'disabled') ? 'Disabled finger' : '-';
+    renderBars('#tRssiSvg .bar', st.rssi, 'tRssi');
 
     $('sysPairing').textContent = st.pairingValid ? 'Paired with this sensor.' : 'Pairing invalid. Pair the sensor again.';
 
@@ -578,12 +584,15 @@
     var box = $('log');
     box.textContent = '';
     var shown = lines.filter(function (l) { return l; }).reverse();
-    if (!shown.length) { box.appendChild(el('div', 'empty', 'No messages yet.')); return; }
+    if (!shown.length) { box.appendChild(el('span', 'dash-log-empty', 'No messages yet')); return; }
     shown.forEach(function (line) {
-      var row = el('div');
       var m = /^\[(.*?)\]:\s?(.*)$/.exec(line);
-      if (m) { row.appendChild(el('span', 'ts', m[1])); row.appendChild(document.createTextNode(m[2])); }
-      else row.textContent = line;
+      var msg = m ? m[2] : line;
+      var lvl = /error|fail|invalid|not found|missing/i.test(msg) ? 'ERR' : /warn|no match|unknown|disabled|ignor|offline|lost/i.test(msg) ? 'WRN' : 'INF';
+      var row = el('div', 'dash-log-line lvl-' + lvl);
+      row.appendChild(el('span', 'dash-log-ts', m ? m[1].replace(/^\d{4}-\d{2}-\d{2}\s+/, '') : ''));
+      row.appendChild(el('span', 'dash-log-lvl', lvl));
+      row.appendChild(el('span', 'dash-log-msg', msg));
       box.appendChild(row);
     });
     if (enroll) updateEnroll();
