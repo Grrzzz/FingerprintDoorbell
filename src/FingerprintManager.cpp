@@ -936,3 +936,11 @@ String FingerprintManager::storageDetailsJson() {
   return String("{\"total\":") + total + ",\"used\":" + used + ",\"reserved\":126,\"fingers\":" + fingers + ",\"settings\":" + settings +
          ",\"other\":" + other + ",\"fingerCount\":" + getFingerCount() + "}";
 }
+
+String FingerprintManager::sensorInfoJson() {
+  if (!connected)
+    return "{}";
+  return String("{\"capacity\":") + finger.capacity + ",\"security\":" + finger.security_level + ",\"templates\":" + finger.templateCount
+         + ",\"packetLen\":" + (finger.packet_len == 3 ? 256 : finger.packet_len == 2 ? 128 : finger.packet_len == 1 ? 64 : 32)
+         + ",\"baud\":" + (uint32_t)finger.baud_rate * 9600UL + ",\"status\":" + finger.status_reg + ",\"address\":" + (uint32_t)finger.device_addr + "}";
+}

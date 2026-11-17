@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='19' fill='%235b6cff'/%3E%3C/svg%3E">
   <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
-  <link rel="stylesheet" href="/style.css?v=51">
+  <link rel="stylesheet" href="/style.css?v=52">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -29,7 +29,12 @@
 </svg>
 
 <div class="app">
-  <aside class="rail">
+  <header class="topbar">
+    <button type="button" class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="rail"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="topbar-title" id="topbarTitle">FingerprintDoorbell</div>
+  </header>
+  <div class="rail-backdrop" id="railBackdrop"></div>
+  <aside class="rail" id="rail">
     <div class="brand">
       <div class="brand-logo"><svg><use href="#i-fp"/></svg></div>
       <div>
@@ -45,9 +50,9 @@
         <button type="button" class="nav-parent" id="navSystemBtn" aria-expanded="false" aria-controls="navSystemSub"><svg><use href="#i-cog"/></svg><span>System</span><i class="nav-dot" id="navDot" hidden></i><svg class="chev"><use href="#i-chev"/></svg></button>
         <div class="nav-sub" id="navSystemSub">
           <a href="#system/info" data-view="system-info">Info</a>
+          <a href="#system/setup" data-view="system-setup">Setup</a>
           <a href="#system/update" data-view="system-update">Update</a>
-          <a href="#system/mqtt" data-view="system-mqtt">MQTT</a>
-          <a href="#system/general" data-view="system-general">General</a>
+          <a href="#system/reboot" data-view="system-reboot">Reboot</a>
         </div>
       </div>
     </nav>
@@ -129,9 +134,101 @@
       <div id="ledCards"></div>
     </section>
 
-    <!-- ================= CONNECTIVITY ================= -->
-    <section class="view" id="view-system-mqtt" hidden>
-      <header><h1>MQTT</h1><p>MQTT broker and Home Assistant. Saving restarts the device.</p></header>
+    <!-- ================= SYSTEM INFO ================= -->
+    <section class="view sys-info" id="view-system-info" hidden>
+      <header><h1>Info</h1><p>The essentials at a glance, all details underneath.</p></header>
+
+      <div class="sys-stats">
+        <div class="stat"><div class="stat-label">Status</div><div class="stat-value small"><output class="badge" id="iStatus">-</output></div></div>
+        <div class="stat"><div class="stat-label">Uptime</div><div class="stat-value small"><output id="iUptime">-</output></div></div>
+        <div class="stat"><div class="stat-label">Wi-Fi signal</div><div class="stat-value small"><output id="iWifi">-</output></div></div>
+        <div class="stat"><div class="stat-label">Firmware</div><div class="stat-value small"><output id="iFw">-</output></div></div>
+        <div class="stat"><div class="stat-label">Fingerprints</div><div class="stat-value small"><output id="iFingers">-</output></div></div>
+        <div class="stat"><div class="stat-label">Memory free</div><div class="stat-value small"><output id="iMem">-</output></div></div>
+      </div>
+
+      <div class="sys-grid">
+        <section class="card sys-card sys-span2">
+          <div class="card-header"><span>Network</span><output class="badge" id="netBadge">-</output></div>
+          <div class="sys-body">
+            <div class="sys-hero-block"><div class="sys-hero-label">IP address</div><div class="sys-hero-num sys-mono" id="netIp">-</div></div>
+            <div class="chips" id="netChips"></div>
+            <div class="sys-kv-grid" id="netKv"></div>
+          </div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Firmware</span></div>
+          <div class="sys-body">
+            <div class="sys-hero-block"><div class="sys-hero-label">Version</div><div class="sys-hero-num" id="sysVersion">-</div></div>
+            <div class="sys-kv-grid" id="fwKv"></div>
+            <a class="btn ghost sm" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
+          </div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Fingerprint sensor</span><output class="badge" id="senBadge">-</output></div>
+          <div class="sys-body">
+            <div class="sys-kv-grid" id="senKv"></div>
+          </div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Device</span></div>
+          <div class="sys-body"><div class="sys-kv-grid" id="devKv"></div></div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Memory</span></div>
+          <div class="sys-body"><div class="sys-kv-grid" id="memKv"></div></div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Time</span><output class="badge" id="timeBadge">-</output></div>
+          <div class="sys-body"><div class="sys-kv-grid" id="timeKv"></div></div>
+        </section>
+
+        <section class="card sys-card">
+          <div class="card-header"><span>Services</span></div>
+          <div class="sys-body"><div class="sys-kv-grid" id="svcKv"></div></div>
+        </section>
+
+        <section class="card sys-card sys-span2">
+          <div class="card-header"><span>Storage</span></div>
+          <div class="sys-body">
+            <p class="sub">Flash area for fingerprint names, schedules and settings.</p>
+            <div class="stack" id="stStack"></div>
+            <div class="stack-legend" id="stLegend"></div>
+            <div class="hint" id="stHint"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ================= UPDATE ================= -->
+    <section class="view" id="view-system-update" hidden>
+      <header><h1>Update</h1><p>New releases are looked up on GitHub by this browser.</p></header>
+      <div class="card">
+        <div class="list-row">
+          <div><div class="t">Firmware</div><div class="d" id="sysVersion2">-</div><div class="d" id="sysUpdate"></div></div>
+          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= REBOOT ================= -->
+    <section class="view" id="view-system-reboot" hidden>
+      <header><h1>Reboot</h1><p>Restart the device without losing any settings.</p></header>
+      <div class="card">
+        <h2>Reboot device</h2>
+        <p class="sub">The web interface is unavailable for about 30 seconds while the device restarts.</p>
+        <button class="btn" id="btnReboot">Reboot now</button>
+      </div>
+    </section>
+
+    <!-- ================= SETUP ================= -->
+    <section class="view" id="view-system-setup" hidden>
+      <header><h1>Setup</h1><p>MQTT, Home Assistant, time, gong, sensor pairing and resets. Saving restarts the device.</p></header>
 
       <div class="card">
         <h2>MQTT</h2>
@@ -165,46 +262,6 @@
           <span class="hint">Default is "homeassistant". Change only if you changed it in the Home Assistant MQTT integration.</span>
         </div>
       </div>
-    </section>
-
-    <!-- ================= SYSTEM ================= -->
-    <section class="view" id="view-system-info" hidden>
-      <header><h1>Info</h1><p>Firmware version and storage.</p></header>
-
-      <div class="card">
-        <div class="list-row">
-          <div><div class="t">Firmware</div><div class="d" id="sysVersion">-</div></div>
-          <a class="btn ghost" href="https://github.com/Grrzzz/FingerprintDoorbell" target="_blank" rel="noopener">GitHub</a>
-        </div>
-        <div class="list-row">
-          <div><div class="t">Restart device</div><div class="d">Reboots the ESP32.</div></div>
-          <button class="btn ghost" id="btnReboot">Restart</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Storage</h2>
-        <p class="sub">Flash area for fingerprint names, schedules and settings.</p>
-        <div class="stack" id="stStack"></div>
-        <div class="stack-legend" id="stLegend"></div>
-        <div class="hint" id="stHint"></div>
-      </div>
-    </section>
-
-    <!-- ================= UPDATE ================= -->
-    <section class="view" id="view-system-update" hidden>
-      <header><h1>Update</h1><p>New releases are looked up on GitHub by this browser.</p></header>
-      <div class="card">
-        <div class="list-row">
-          <div><div class="t">Firmware</div><div class="d" id="sysVersion2">-</div><div class="d" id="sysUpdate"></div></div>
-          <div class="row-actions"><button class="btn ghost" id="btnCheckUpdate">Check for update</button><a class="btn ghost" href="/update">Open updater</a></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= GENERAL ================= -->
-    <section class="view" id="view-system-general" hidden>
-      <header><h1>General</h1><p>Time, gong, sensor pairing and resets.</p></header>
 
       <div class="card">
         <h2>Time</h2>
@@ -321,6 +378,6 @@
 <div id="toast"></div>
 <div class="overlay" id="overlay" hidden><div><div class="spinner"></div><h2 id="ovTitle">Restarting&hellip;</h2><p id="ovText">The page reloads automatically.</p><div class="ov-bar" id="ovBarWrap" hidden><i id="ovBar"></i></div></div></div>
 
-<script src="/app.js?v=51"></script>
+<script src="/app.js?v=52"></script>
 </body>
 </html>

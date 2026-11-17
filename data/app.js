@@ -65,8 +65,18 @@
   }
 
   // ---------- routing ----------
-  var VIEWS = ['overview', 'fingerprints', 'led', 'system-info', 'system-update', 'system-mqtt', 'system-general'];
-  var ALIASES = { settings: 'system-mqtt', connectivity: 'system-mqtt', system: 'system-info', 'system/info': 'system-info', 'system/update': 'system-update', 'system/mqtt': 'system-mqtt', 'system/general': 'system-general' };
+  var VIEWS = ['overview', 'fingerprints', 'led', 'system-info', 'system-setup', 'system-update', 'system-reboot'];
+  var ALIASES = {
+    settings: 'system-setup', connectivity: 'system-setup', system: 'system-info',
+    'system/info': 'system-info', 'system/setup': 'system-setup', 'system/update': 'system-update', 'system/reboot': 'system-reboot',
+    'system/mqtt': 'system-setup', 'system/general': 'system-setup'
+  };
+
+  function setDrawer(open) {
+    document.body.classList.toggle('nav-open', open);
+    $('burger').setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('burger').setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
   var FP_PATHS = ['M12 11a3 3 0 0 0-3 3c0 2.5.5 4.5 1.5 6.5', 'M12 7a7 7 0 0 0-7 7c0 2 .3 3.6.9 5', 'M12 3a11 11 0 0 0-11 11', 'M12 3a11 11 0 0 1 11 11c0 1.8-.2 3-.5 4.5', 'M12 7a7 7 0 0 1 7 7c0 2-.3 3.8-.8 5.5', 'M12 11a3 3 0 0 1 3 3c0 1.8-.2 3.3-.6 4.8'];
   var FAV_DOT = { ok: '#22c55e', warn: '#f59e0b', bad: '#ef4444' };
   var newRelease = false;
@@ -236,6 +246,9 @@
     Array.prototype.forEach.call(document.querySelectorAll('#nav a'), function (a) {
       a.classList.toggle('active', a.getAttribute('data-view') === v);
     });
+    var cur = document.querySelector('#nav a.active');
+    $('topbarTitle').textContent = cur ? (v.indexOf('system-') === 0 ? 'System - ' : '') + cur.textContent.trim() : 'FingerprintDoorbell';
+    setDrawer(false);
     var inSystem = v.indexOf('system-') === 0;
     $('navSystem').classList.toggle('active', inSystem);
     if (inSystem) setNavOpen(true);
@@ -251,13 +264,104 @@
     disc.setAttribute('data-seq', seq || 3);
   }
 
+  // ---------- rendering: system info ----------
+  function setBadge(id, text, level) {
+    var b = $(id);
+    b.textContent = text;
+    b.className = 'badge' + (level ? ' badge-' + level : '');
+  }
+
+  // fills a key/value grid, rows without a value are skipped
+  function fillKv(id, rows) {
+    var host = $(id);
+    host.textContent = '';
+    rows.forEach(function (r) {
+      if (r[1] === undefined || r[1] === null || r[1] === '') return;
+      var cell = el('div', 'sys-kv');
+      cell.appendChild(el('div', 'sys-k', r[0]));
+      cell.appendChild(el('div', 'sys-v', String(r[1])));
+      host.appendChild(cell);
+    });
+  }
+
+  function fillChips(id, rows) {
+    var host = $(id);
+    host.textContent = '';
+    rows.forEach(function (r) {
+      if (!r[1]) return;
+      var c = el('span', 'chip');
+      c.appendChild(document.createTextNode(r[0] + ' '));
+      c.appendChild(el('b', '', r[1]));
+      host.appendChild(c);
+    });
+  }
+
+  function renderInfo() {
+    var sys = st.sys || {}, sen = st.sensor || {};
+    var rssiLevel = st.rssi > -55 ? 'success' : st.rssi > -75 ? 'warning' : 'error';
+    var rssiText = st.rssi > -55 ? 'Excellent' : st.rssi > -65 ? 'Good' : st.rssi > -75 ? 'Fair' : 'Weak';
+
+    var ok = st.sensorConnected && st.pairingValid;
+    setBadge('iStatus', ok ? 'Healthy' : 'Attention', ok ? 'success' : 'error');
+    $('iUptime').textContent = fmtUptime(st.uptime);
+    $('iWifi').textContent = st.rssi + ' dBm';
+    $('iFw').textContent = String(st.version);
+    $('iFingers').textContent = st.fingerCount + ' / ' + (sen.capacity || 200);
+    $('iMem').textContent = fmtBytes(st.heap);
+
+    setBadge('netBadge', 'Connected - ' + rssiText, rssiLevel);
+    $('netIp').textContent = st.ip;
+    fillChips('netChips', [['Host', st.hostname], ['Mode', st.mode], ['MAC', sys.mac]]);
+    fillKv('netKv', [
+      ['SSID', st.ssid], ['Signal', st.rssi + ' dBm'], ['Channel', sys.channel], ['Gateway', sys.gateway],
+      ['Netmask', sys.netmask], ['DNS', sys.dns], ['BSSID', sys.bssid]
+    ]);
+
+    $('sysVersion').textContent = String(st.version);
+    fillKv('fwKv', [
+      ['Build', sys.build], ['SDK', sys.sdk], ['Last reset', st.resetReason],
+      ['Self-update', st.update && st.update.state ? st.update.state : undefined]
+    ]);
+
+    if (!st.sensorConnected) setBadge('senBadge', 'Not found', 'error');
+    else setBadge('senBadge', st.pairingValid ? 'Paired' : 'Not paired', st.pairingValid ? 'success' : 'error');
+    fillKv('senKv', [
+      ['Model', st.sensorConnected && sen.capacity ? 'Grow R503' : undefined],
+      ['Template capacity', sen.capacity], ['Templates stored', sen.templates],
+      ['Security level', sen.security], ['Packet length', sen.packetLen ? sen.packetLen + ' bytes' : undefined],
+      ['Baud rate', sen.baud], ['Status register', sen.status !== undefined ? '0x' + Number(sen.status).toString(16).toUpperCase() : undefined],
+      ['Sensor address', sen.address !== undefined ? '0x' + Number(sen.address).toString(16).toUpperCase() : undefined]
+    ]);
+
+    fillKv('devKv', [
+      ['Chip', sys.chip], ['Revision', sys.rev], ['Cores', sys.cores], ['CPU clock', sys.mhz ? sys.mhz + ' MHz' : undefined],
+      ['Flash size', sys.flash ? Math.round(sys.flash / 1048576) + ' MB' : undefined], ['Reset reason', st.resetReason]
+    ]);
+
+    fillKv('memKv', [
+      ['Free heap', fmtBytes(st.heap)], ['Lowest free heap', sys.heapMin ? fmtBytes(sys.heapMin) : undefined],
+      ['Largest free block', sys.heapBlock ? fmtBytes(sys.heapBlock) : undefined], ['Heap size', sys.heapTotal ? fmtBytes(sys.heapTotal) : undefined]
+    ]);
+
+    var hasClock = !!st.clock;
+    setBadge('timeBadge', hasClock ? 'Synchronized' : 'No time', hasClock ? 'success' : 'warning');
+    var clockText;
+    if (hasClock) clockText = ('0' + Math.floor(st.clock.min / 60)).slice(-2) + ':' + ('0' + st.clock.min % 60).slice(-2);
+    fillKv('timeKv', [['Device time', clockText], ['Uptime', fmtUptime(st.uptime)]]);
+
+    fillKv('svcKv', [
+      ['MQTT', st.mqtt === 'connected' ? 'Connected' : st.mqtt === 'unconfigured' ? 'Not configured' : 'Offline'],
+      ['Broker', st.mqttServer], ['Home Assistant', st.mqtt === 'unconfigured' ? undefined : (st.haDiscovery ? 'Discovery on' : 'Discovery off')]
+    ]);
+  }
+
   // ---------- rendering: status ----------
   function renderStatus() {
     if (!st) return;
     document.title = st.hostname + ' - FingerprintDoorbell';
     $('brandName').textContent = st.hostname;
+    renderInfo();
     $('brandVersion').textContent = 'Firmware ' + st.version;
-    $('sysVersion').textContent = 'Version ' + st.version;
     $('sysVersion2').textContent = 'Version ' + st.version;
     $('footVersion').textContent = 'v' + String(st.version).replace(/^v/i, '');
 
@@ -956,7 +1060,7 @@
   function updateSaveBar(view) {
     view = view || location.hash.replace('#', '');
     view = ALIASES[view] || view;
-    $('savebar').hidden = !((view === 'system-mqtt' || view === 'system-general') && formDirty());
+    $('savebar').hidden = !(view === 'system-setup' && formDirty());
     $('btnSaveAll').textContent = settingsDirty() ? 'Save & restart' : 'Save';
   }
 
@@ -1019,6 +1123,10 @@
     buildLed();
     window.addEventListener('hashchange', route);
     $('updateHint').onclick = function () { location.hash = '#system/update'; };
+    $('burger').onclick = function () { setDrawer(!document.body.classList.contains('nav-open')); };
+    $('railBackdrop').onclick = function () { setDrawer(false); };
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') setDrawer(false); });
+    window.addEventListener('resize', function () { if (window.innerWidth > 860) setDrawer(false); });
     $('navSystemBtn').onclick = function () { setNavOpen(!$('navSystem').classList.contains('open')); };
 
     $('swIgnore').onchange = function () {

@@ -103,6 +103,7 @@ class FingerprintManager {
     String getFingerListAsHtmlOptionList();
     String getFingerListAsJson();
     int getFingerCount();
+    String sensorInfoJson(); // parameters read from the sensor at connect time
     bool getIgnoreTouchRing();
     void setIgnoreTouchRing(bool state);
     bool isFingerOnSensor();

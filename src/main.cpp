@@ -196,6 +196,16 @@ String getStatusJson() {
     uint32_t storageUsed, storageTotal;
   FingerprintManager::storageStats(storageUsed, storageTotal);
   json += ",\"storage\":{\"used\":" + String(storageUsed) + ",\"total\":" + String(storageTotal) + "}";
+  json += ",\"sensor\":" + fingerManager.sensorInfoJson();
+  {
+    esp_chip_info_t chip;
+    esp_chip_info(&chip);
+    json += String(",\"sys\":{\"chip\":\"ESP32\",\"rev\":") + chip.revision + ",\"cores\":" + chip.cores + ",\"mhz\":" + ESP.getCpuFreqMHz()
+            + ",\"flash\":" + ESP.getFlashChipSize() + ",\"heapMin\":" + ESP.getMinFreeHeap() + ",\"heapBlock\":" + ESP.getMaxAllocHeap()
+            + ",\"heapTotal\":" + ESP.getHeapSize() + ",\"sdk\":\"" + ESP.getSdkVersion() + "\",\"build\":\"" + __DATE__ + " " + __TIME__ + "\""
+            + ",\"mac\":\"" + WiFi.macAddress() + "\",\"channel\":" + WiFi.channel() + ",\"gateway\":\"" + WiFi.gatewayIP().toString()
+            + "\",\"netmask\":\"" + WiFi.subnetMask().toString() + "\",\"dns\":\"" + WiFi.dnsIP().toString() + "\",\"bssid\":\"" + WiFi.BSSIDstr() + "\"}";
+  }
   // device clock (time zone applied), used by the web interface to mark "now" in the schedule views
   struct tm clockInfo;
   if (getLocalTime(&clockInfo, 0))
