@@ -445,6 +445,7 @@ bool initWifi() {
     WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE); // DHCP
   }
   WiFi.setHostname(wifiSettings.hostname.c_str()); //define hostname
+  WiFi.setSleep(false); // powered device, modem sleep causes high latency and stalled transfers
   WiFi.begin(wifiSettings.ssid.c_str(), wifiSettings.password.c_str());
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED) {

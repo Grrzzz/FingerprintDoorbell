@@ -81,6 +81,8 @@ static void closeDownload(HTTPClient& http, WiFiClientSecure*& client) {
 // Every chunk goes straight into the update partition, nothing is buffered, so it needs no extra heap.
 static int rawTarget = -1; // -1 zip, else U_FLASH / U_SPIFFS for a single image
 static bool rawBegun = false;
+static volatile bool uploadActive = false;
+static volatile uint32_t uploadLastChunk = 0;
 
 struct ZipInstaller {
   enum Phase { HEADER, NAME, EXTRA, DATA, DONE, FAILED };
@@ -270,9 +272,11 @@ bool selfUpdateUploadChunk(const String& filename, size_t index, uint8_t* data, 
     zip->total = total;
     rawBegun = false;
     running = true;
+    uploadActive = true;
     percent = 0;
     setState("upload", "Receiving the update");
   }
+  uploadLastChunk = millis();
   if (!zip) { error = message.length() ? message : "no update in progress"; return false; }
   if (rawTarget != -1) {
     if (!rawBegun) {
@@ -303,6 +307,7 @@ bool selfUpdateUploadChunk(const String& filename, size_t index, uint8_t* data, 
 
 // called when the upload request ends; true if everything was installed (the caller reboots)
 bool selfUpdateUploadFinish(String& error) {
+  uploadActive = false;
   bool ok = zip && zip->complete() && !(rawTarget != -1 && !rawBegun);
   if (!ok) {
     if (error.length() == 0) error = (zip && zip->error.length()) ? zip->error : "the upload is not a complete update";
@@ -318,7 +323,15 @@ bool selfUpdateUploadFinish(String& error) {
   zip = nullptr;
   return ok;
 }
+// a browser upload that stops delivering data (connection lost) must not block the next attempt until reboot
 bool selfUpdateRunning() {
+  if (running && uploadActive && millis() - uploadLastChunk > 30000) {
+    uploadActive = false;
+    if (Update.isRunning()) Update.abort();
+    SPIFFS.begin();
+    setState("error", "the upload stalled and was cancelled");
+    running = false;
+  }
   return running;
 }
 
