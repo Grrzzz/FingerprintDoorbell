@@ -10,7 +10,7 @@
 #include <esp_partition.h>
 
 extern bool shouldReboot;
-void notifyClients(String message);
+void notifyClients(const String& message);
 
 static const char* RELEASE_BASE = "https://github.com/Grrzzz/FingerprintDoorbell/releases/download/";
 

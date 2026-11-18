@@ -239,8 +239,9 @@ static FingerPolicy policyFromString(const String& str) {
       if (field == 0) p.enabled = token.toInt() != 0;
       else if (field == 1) p.scheduled = token.toInt() != 0;
       else if (p.windowCount < MAX_FINGER_WINDOWS) {
-        int d = 0, f = 0, t = 0, a = 0;
-        sscanf(token.c_str(), "%d,%d,%d,%d", &d, &f, &t, &a);
+        int v[4] = {0, 0, 0, 0};
+        parseInts(token, ',', v, 4);
+        int d = v[0], f = v[1], t = v[2], a = v[3];
         FingerWindow& w = p.windows[p.windowCount++];
         w.days = d & 0x7F;
         w.from = constrain(f, 0, 1439);
@@ -251,8 +252,9 @@ static FingerPolicy policyFromString(const String& str) {
       pos = end + 1;
     }
   } else {
-    int e = 1, sc = 0, d = 0, f = 0, t = 0, a = 0;
-    sscanf(str.c_str(), "%d;%d;%d;%d;%d;%d", &e, &sc, &d, &f, &t, &a);
+    int v[6] = {1, 0, 0, 0, 0, 0};
+    parseInts(str, ';', v, 6);
+    int e = v[0], sc = v[1], d = v[2], f = v[3], t = v[4], a = v[5];
     p.enabled = e != 0;
     p.scheduled = sc != 0;
     if (sc != 0 || d != 0) {

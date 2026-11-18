@@ -365,17 +365,16 @@ String processor(const String& var){
 
 
 // send LastMessage to websocket clients
-void notifyClients(String message) {
+void notifyClients(const String& message) {
   String messageWithTimestamp = "[" + getTimestampString() + "]: " + message;
   Serial.println(messageWithTimestamp);
   addLogMessage(messageWithTimestamp);
   events.send(getLogMessagesAsHtml().c_str(),"message",millis(),1000);
   
-  String mqttRootTopic = settingsManager.getAppSettings().mqttRootTopic;
-  mqttClient.publish((String(mqttRootTopic) + "/lastLogMessage").c_str(), message.c_str());
+  mqttClient.publish((settingsManager.getAppSettings().mqttRootTopic + "/lastLogMessage").c_str(), message.c_str());
 }
 
-void updateClientsFingerlist(String fingerlist) {
+void updateClientsFingerlist(const String& fingerlist) {
   Serial.println("New fingerlist was sent to clients");
   events.send(fingerlist.c_str(),"fingerlist",millis(),1000);
 }
@@ -680,13 +679,13 @@ void startWebserver(){
         while (pos < (int)w.length() && policy.windowCount < MAX_FINGER_WINDOWS) {
           int end = w.indexOf(';', pos);
           if (end < 0) end = w.length();
-          int d = 0, f = 0, t = 0, a = 0;
-          if (sscanf(w.substring(pos, end).c_str(), "%d,%d,%d,%d", &d, &f, &t, &a) >= 3) {
+          int v[4] = {0, 0, 0, 0};
+          if (parseInts(w.substring(pos, end), ',', v, 4) >= 3) {
             FingerWindow& win = policy.windows[policy.windowCount++];
-            win.days = constrain(d, 0, 127);
-            win.from = constrain(f, 0, 1439);
-            win.to = constrain(t, 0, 1439);
-            win.allDay = a != 0;
+            win.days = constrain(v[0], 0, 127);
+            win.from = constrain(v[1], 0, 1439);
+            win.to = constrain(v[2], 0, 1439);
+            win.allDay = v[3] != 0;
           }
           pos = end + 1;
         }

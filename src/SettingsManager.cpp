@@ -1,5 +1,5 @@
 #include "SettingsManager.h"
-#include <Crypto.h>
+#include <mbedtls/sha256.h>
 
 bool SettingsManager::loadWifiSettings() {
     Preferences preferences;
@@ -180,20 +180,24 @@ bool SettingsManager::deleteRingSettings() {
 String SettingsManager::generateNewPairingCode() {
 
     /* Create a SHA256 hash */
-    SHA256 hasher;
+    mbedtls_sha256_context hasher;
+    mbedtls_sha256_init(&hasher);
+    mbedtls_sha256_starts_ret(&hasher, 0);
+    auto feed = [&hasher](const String& s) { mbedtls_sha256_update_ret(&hasher, (const unsigned char*)s.c_str(), s.length()); };
 
     /* Put some unique values as input in our new hash */
-    hasher.doUpdate( String(esp_random()).c_str() ); // random number
-    hasher.doUpdate( String(millis()).c_str() ); // time since boot
-    hasher.doUpdate(getTimestampString().c_str()); // current time (if NTP is available)
-    hasher.doUpdate(appSettings.mqttUsername.c_str());
-    hasher.doUpdate(appSettings.mqttPassword.c_str());
-    hasher.doUpdate(wifiSettings.ssid.c_str());
-    hasher.doUpdate(wifiSettings.password.c_str());
+    feed(String(esp_random())); // random number
+    feed(String(millis())); // time since boot
+    feed(getTimestampString()); // current time (if NTP is available)
+    feed(appSettings.mqttUsername);
+    feed(appSettings.mqttPassword);
+    feed(wifiSettings.ssid);
+    feed(wifiSettings.password);
 
     /* Compute the final hash */
-    byte hash[SHA256_SIZE];
-    hasher.doFinal(hash);
+    byte hash[32];
+    mbedtls_sha256_finish_ret(&hasher, hash);
+    mbedtls_sha256_free(&hasher);
     
     // Convert our 32 byte hash to 32 chars long hex string. When converting the entire hash to hex we would need a length of 64 chars.
     // But because we only want a length of 32 we only use the first 16 bytes of the hash. I know this will increase possible collisions,
